@@ -74,7 +74,7 @@ export function DetailsDialog({ isOpen, onClose, item, onAddToWatchlist, isAdded
                 setDetails(null); // Clear previous details
                 setProviders(null);
                 setVideos(null);
-                
+
                 try {
                     const detailsUrl = `/api/tmdb/${mediaType}/${itemId}`;
                     const providersUrl = `/api/tmdb/${mediaType}/${itemId}/watch/providers?region=${userRegion}`;
@@ -127,13 +127,13 @@ export function DetailsDialog({ isOpen, onClose, item, onAddToWatchlist, isAdded
     const flatProviders = getNested(providers, 'flatrate', []);
     const rentProviders = getNested(providers, 'rent', []);
     const buyProviders = getNested(providers, 'buy', []);
-    
+
     // Get trailers and videos
-    const trailers = videos?.filter(video => 
-        video.site === 'YouTube' && 
+    const trailers = videos?.filter(video =>
+        video.site === 'YouTube' &&
         (video.type === 'Trailer' || video.type === 'Teaser')
     ) || [];
-    
+
     // Get the main trailer (first official trailer, or first teaser if no trailer)
     const mainTrailer = trailers.find(video => video.type === 'Trailer') || trailers[0];
 
@@ -151,7 +151,9 @@ export function DetailsDialog({ isOpen, onClose, item, onAddToWatchlist, isAdded
     };
 
     return (
-        <Dialog open={isOpen} onOpenChange={onClose}>
+        <Dialog open={isOpen} onOpenChange={() => {
+            onClose()
+        }}>
             <DialogContent className="sm:max-w-[700px] max-h-[90vh] p-0 overflow-hidden rounded-xl">
                 {/* Backdrop image header */}
                 {backdropPath && (
@@ -219,7 +221,7 @@ export function DetailsDialog({ isOpen, onClose, item, onAddToWatchlist, isAdded
                                                 alt={title}
                                                 className="w-full h-auto rounded-lg shadow-md"
                                             />
-                                            
+
                                             {/* Add watch trailer button if trailer available */}
                                             {mainTrailer && (
                                                 <Button
@@ -275,7 +277,7 @@ export function DetailsDialog({ isOpen, onClose, item, onAddToWatchlist, isAdded
                                         </div>
                                     </div>
                                 </TabsContent>
-                                
+
                                 {/* New Trailers Tab */}
                                 {trailers.length > 0 && (
                                     <TabsContent value="trailers" className="mt-0">
@@ -294,22 +296,22 @@ export function DetailsDialog({ isOpen, onClose, item, onAddToWatchlist, isAdded
                                                 </div>
                                                 <p className="mt-2 text-sm font-medium">{mainTrailer.name}</p>
                                             </div>
-                                            
+
                                             {/* List of additional trailers */}
                                             {trailers.length > 1 && (
                                                 <div className="mt-6">
                                                     <h3 className="text-lg font-medium mb-3">More videos</h3>
                                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                                         {trailers.slice(1).map(video => (
-                                                            <a 
-                                                                key={video.id} 
+                                                            <a
+                                                                key={video.id}
                                                                 href={`https://www.youtube.com/watch?v=${video.key}`}
                                                                 target="_blank"
                                                                 rel="noopener noreferrer"
                                                                 className="flex items-start gap-3 group hover:bg-gray-50 p-2 rounded-lg transition-colors"
                                                             >
                                                                 <div className="relative w-24 h-14 flex-shrink-0 rounded overflow-hidden bg-gray-100">
-                                                                    <img 
+                                                                    <img
                                                                         src={`https://img.youtube.com/vi/${video.key}/mqdefault.jpg`}
                                                                         alt={video.name}
                                                                         className="w-full h-full object-cover"
@@ -471,4 +473,4 @@ export function DetailsDialog({ isOpen, onClose, item, onAddToWatchlist, isAdded
             </DialogContent>
         </Dialog>
     );
-}
+} 

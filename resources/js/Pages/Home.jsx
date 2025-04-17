@@ -22,6 +22,7 @@ import { Separator } from "@/components/ui/separator"
 // Import custom components
 import { ResultItem } from "@/Components/ResultItem"
 import { DetailsDialog } from "@/Components/DetailsDialog"
+import { MediaCarousel } from '@/Components/MediaCarousel'
 
 // Import Heroicons
 import {
@@ -153,6 +154,7 @@ export default function Home(props) {
     const [previousRecommendations, setPreviousRecommendations] = useState([])
     const [quizResultsCache, setQuizResultsCache] = useState({})
     const [currentQuizPage, setCurrentQuizPage] = useState(1) // Track API page for quiz results
+    const [quizRecommendations, setQuizRecommendations] = useState([])
 
     // Watchlist State
     const [watchlist, setWatchlist] = useState(() => {
@@ -318,7 +320,7 @@ export default function Home(props) {
 
     // Generic filter change handler
     const handleFilterChange = () => {
-         const currentFilters = {
+        const currentFilters = {
             with_genres: selectedGenre,
             yearRange: yearRange,
             minRating: minRating,
@@ -380,6 +382,8 @@ export default function Home(props) {
             console.log('Adding to watchlist:', watchlistItem)
             setWatchlist(prev => [...prev, watchlistItem])
         } else {
+            // remove from watchlist
+            setWatchlist(watchlist.filter(w => !(w.id === watchlistItem.id && w.media_type === watchlistItem.media_type)))
             console.log('Item already in watchlist:', watchlistItem)
         }
     }
@@ -417,7 +421,7 @@ export default function Home(props) {
         setQuizLoading(true)
         setQuizError(null)
         setQuizRecommendation(null)
-        setQuizActive(false)
+        setQuizRecommendations([])
 
         const params = {}
         const answers = quizAnswers
@@ -429,41 +433,42 @@ export default function Home(props) {
         // Check if we have cached results for these exact quiz answers
         if (quizResultsCache[cacheKey] && quizResultsCache[cacheKey].length > 0) {
             console.log('Using cached quiz results')
-            
+
             // Filter out previously shown recommendations and items in watchlist
             const availableResults = quizResultsCache[cacheKey].filter(item => {
                 const itemId = item.id
                 const itemType = item.media_type || (item.title ? 'movie' : 'tv')
-                
+
                 // Check if it was previously recommended
                 const wasPreviouslyRecommended = previousRecommendations.some(
-                    prevItem => prevItem.id === itemId && 
-                    (prevItem.media_type || (prevItem.title ? 'movie' : 'tv')) === itemType
+                    prevItem => prevItem.id === itemId &&
+                        (prevItem.media_type || (prevItem.title ? 'movie' : 'tv')) === itemType
                 )
-                
+
                 // Check if it's in the watchlist
                 const isInWatchlist = watchlist.some(
                     watchItem => watchItem.id === itemId && watchItem.media_type === itemType
                 )
-                
+
                 // Only include items not previously recommended and not in watchlist
                 return !wasPreviouslyRecommended && !isInWatchlist
             })
-            
+
             if (availableResults.length > 0) {
+                // Store the first result as the main recommendation
                 const randomIndex = Math.floor(Math.random() * availableResults.length)
                 const selectedItem = availableResults[randomIndex]
-                
+
+                // Store all available results for the carousel
+                setQuizRecommendations(availableResults)
                 setPreviousRecommendations(prev => [...prev, selectedItem])
                 setQuizRecommendation(selectedItem)
-                setQuizLoading(false)
-                return
+            } else {
+                // If all cached results have been shown or are in watchlist, 
+                // we'll fetch a new page of results
+                console.log('Cached results exhausted, fetching more results')
+                setCurrentQuizPage(prev => prev + 1)
             }
-            
-            // If all cached results have been shown or are in watchlist, 
-            // we'll fetch a new page of results
-            console.log('Cached results exhausted, fetching more results')
-            setCurrentQuizPage(prev => prev + 1)
         }
 
         // Q1: Mood -> Genre
@@ -517,7 +522,7 @@ export default function Home(props) {
             params.watch_region = userRegion
             params.region = userRegion
         }
-        
+
         // Q5: Audience
         if (answers.audience === 'date' && !params.with_genres?.includes('10749')) {
             params.with_genres = params.with_genres ? `${params.with_genres},10749` : '10749'
@@ -525,15 +530,14 @@ export default function Home(props) {
 
         params.sort_by = 'popularity.desc'
         params['vote_count.gte'] = 100
-        
+
         // Add page parameter to get different results each time
         params.page = currentQuizPage
 
         try {
-            console.log(`Fetching quiz results (page ${currentQuizPage})`)
             const response = await axios.get(`/api/tmdb/discover/${mediaType}`, { params })
             const results = response.data.results || []
-            
+
             if (results.length > 0) {
                 // Add new results to cache
                 setQuizResultsCache(prev => {
@@ -553,34 +557,36 @@ export default function Home(props) {
                         }
                     }
                 })
-                
+
                 // Filter out items in watchlist and previous recommendations
                 const filteredResults = results.filter(item => {
                     const itemId = item.id
                     const itemType = item.media_type || (item.title ? 'movie' : 'tv')
-                    
+
                     // Check if it's in the watchlist
                     const isInWatchlist = watchlist.some(
                         watchItem => watchItem.id === itemId && watchItem.media_type === itemType
                     )
-                    
+
                     // Check if it was previously recommended in this session
                     const wasPreviouslyRecommended = previousRecommendations.some(
-                        prevItem => prevItem.id === itemId && 
-                        (prevItem.media_type || (prevItem.title ? 'movie' : 'tv')) === itemType
+                        prevItem => prevItem.id === itemId &&
+                            (prevItem.media_type || (prevItem.title ? 'movie' : 'tv')) === itemType
                     )
-                    
+
                     return !isInWatchlist && !wasPreviouslyRecommended
                 })
-                
+
                 if (filteredResults.length > 0) {
-                    // Select a random item from all filtered results, not just the top 5
+                    // Store the first result as the main recommendation
                     const randomIndex = Math.floor(Math.random() * filteredResults.length)
                     const selectedItem = filteredResults[randomIndex]
-                    
-                    // Add to previously shown recommendations
+
+                    // Store all available results for the carousel
+                    setQuizRecommendations(filteredResults)
                     setPreviousRecommendations(prev => [...prev, selectedItem])
                     setQuizRecommendation(selectedItem)
+                    setQuizActive(false)
                 } else if (results.length > 0) {
                     // If all results are in watchlist/previously shown, just pick a random one
                     // but prioritize ones not in watchlist
@@ -589,10 +595,10 @@ export default function Home(props) {
                         const itemType = item.media_type || (item.title ? 'movie' : 'tv')
                         return !watchlist.some(w => w.id === itemId && w.media_type === itemType)
                     })
-                    
+
                     const resultsToUse = notInWatchlist.length > 0 ? notInWatchlist : results
                     const randomIndex = Math.floor(Math.random() * resultsToUse.length)
-                    
+
                     setPreviousRecommendations(prev => [...prev, resultsToUse[randomIndex]])
                     setQuizRecommendation(resultsToUse[randomIndex])
                 } else {
@@ -606,6 +612,7 @@ export default function Home(props) {
             setQuizError(err.response?.data?.message || 'Failed to get recommendation.')
         } finally {
             setQuizLoading(false)
+            setQuizActive(false)
         }
     }
 
@@ -613,43 +620,43 @@ export default function Home(props) {
     const fetchAnotherRecommendation = () => {
         // Increment the page counter to ensure we get different results next time
         setCurrentQuizPage(prev => prev + 1)
-        
+
         const cacheKey = JSON.stringify(quizAnswers)
-        
+
         // If we have cached results, we can immediately get another recommendation
         if (quizResultsCache[cacheKey] && quizResultsCache[cacheKey].length > 0) {
             setQuizLoading(true)
-            
+
             // Filter out previously shown and watchlist items
             const availableResults = quizResultsCache[cacheKey].filter(item => {
                 const itemId = item.id
                 const itemType = item.media_type || (item.title ? 'movie' : 'tv')
-                
+
                 const wasPreviouslyRecommended = previousRecommendations.some(
-                    prevItem => prevItem.id === itemId && 
-                    (prevItem.media_type || (prevItem.title ? 'movie' : 'tv')) === itemType
+                    prevItem => prevItem.id === itemId &&
+                        (prevItem.media_type || (prevItem.title ? 'movie' : 'tv')) === itemType
                 )
-                
+
                 const isInWatchlist = watchlist.some(
                     watchItem => watchItem.id === itemId && watchItem.media_type === itemType
                 )
-                
+
                 return !wasPreviouslyRecommended && !isInWatchlist
             })
-            
+
             if (availableResults.length > 0) {
-                // We can get another recommendation without an API call
-                // Select a truly random item, not just from top results
                 const randomIndex = Math.floor(Math.random() * availableResults.length)
                 const selectedItem = availableResults[randomIndex]
-                
+
+                // Update both the single recommendation and the carousel data
+                setQuizRecommendations(availableResults)
                 setPreviousRecommendations(prev => [...prev, selectedItem])
                 setQuizRecommendation(selectedItem)
-                setQuizLoading(false)
-                return
+                // need to hide the quiz recommendation card and the quiz
+                setQuizActive(false)
             }
         }
-        
+
         // If no more cached results, fetch a new page
         findQuizRecommendation()
     }
@@ -676,7 +683,7 @@ export default function Home(props) {
 
                 <div className="container mx-auto px-4 pb-12">
                     {/* "I'm Feeling Lucky" Section */}
-                    <section className="mb-8">
+                    <section className="mb-8 relative">
                         <Card className="overflow-hidden border-0 shadow-lg rounded-2xl">
                             <CardContent className="p-0">
                                 <div className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white p-6">
@@ -800,20 +807,27 @@ export default function Home(props) {
                                     {quizRecommendation && !quizLoading && (
                                         <div className="mt-6">
                                             <h3 className="text-xl font-semibold mb-6 text-center">We recommend:</h3>
-                                            <div className="max-w-xs mx-auto">
-                                                <ResultItem
-                                                    item={quizRecommendation}
-                                                    onAddToWatchlist={addToWatchlist}
-                                                    onShowDetails={handleShowDetails}
-                                                    isAddedToWatchlist={
-                                                        watchlist.some(w =>
-                                                            w.id === quizRecommendation.id &&
-                                                            w.media_type === (quizRecommendation.media_type || (quizRecommendation.title ? 'movie' : 'tv'))
-                                                        )
-                                                    }
-                                                />
-                                            </div>
-                                            <div className="text-center mt-6 space-x-4">
+
+                                            {/* Replace separate featured item with central carousel */}
+                                            {quizRecommendations.length > 0 && (
+                                                <div className="my-4">
+                                                    <MediaCarousel
+                                                        title=""
+                                                        items={quizRecommendations}
+                                                        onAddToWatchlist={addToWatchlist}
+                                                        onShowDetails={handleShowDetails}
+                                                        watchlist={watchlist}
+                                                        onRequestMoreItems={fetchAnotherRecommendation}
+                                                        featuredItemId={quizRecommendation.id}
+                                                        onItemSelect={(item) => {
+                                                            // Update the featured recommendation when a different item is selected
+                                                            setQuizRecommendation(item);
+                                                        }}
+                                                    />
+                                                </div>
+                                            )}
+
+                                            <div className="text-center mt-10 space-x-4">
                                                 <Button
                                                     onClick={fetchAnotherRecommendation}
                                                     variant="outline"
@@ -847,7 +861,7 @@ export default function Home(props) {
                         </Card>
                     </section>
 
-                {/* Search & Filter Section */}
+                    {/* Search & Filter Section */}
                     <section className="mb-8">
                         <Card className="overflow-hidden border-0 shadow-lg rounded-2xl">
                             <CardContent className="p-0">
@@ -860,20 +874,20 @@ export default function Home(props) {
                                 </div>
 
                                 <div className="p-6">
-                        {/* Search Input */}
+                                    {/* Search Input */}
                                     <div className="mb-6">
                                         <div className="relative">
                                             <MagnifyingGlassIcon className="h-5 w-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-                            <Input
-                                id="search"
-                                type="text"
-                                placeholder="Search movies or TV shows... (e.g., Dune, The Bear)"
-                                value={searchQuery}
-                                onChange={handleInputChange}
+                                            <Input
+                                                id="search"
+                                                type="text"
+                                                placeholder="Search movies or TV shows... (e.g., Dune, The Bear)"
+                                                value={searchQuery}
+                                                onChange={handleInputChange}
                                                 className="pl-10 py-6 text-lg rounded-xl border-gray-200 focus:border-purple-300 focus:ring-purple-300"
-                            />
+                                            />
                                         </div>
-                        </div>
+                                    </div>
 
                                     {/* Filters */}
                                     <div className="mb-4">
@@ -887,87 +901,87 @@ export default function Home(props) {
                                                 </AccordionTrigger>
                                                 <AccordionContent>
                                                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 items-start mt-4">
-                        {/* Genre Filter */}
-                        <div>
+                                                        {/* Genre Filter */}
+                                                        <div>
                                                             <Label htmlFor="genre" className="text-sm font-medium mb-2 block">Genre</Label>
-                            <Select value={selectedGenre} onValueChange={handleGenreChange}>
+                                                            <Select value={selectedGenre} onValueChange={handleGenreChange}>
                                                                 <SelectTrigger id="genre" className="w-full">
-                                    <SelectValue placeholder="Any Genre" />
-                                </SelectTrigger>
-                                <SelectContent>
+                                                                    <SelectValue placeholder="Any Genre" />
+                                                                </SelectTrigger>
+                                                                <SelectContent>
                                                                     <SelectItem value="all">Any Genre</SelectItem>
-                                    {allGenres.map(genre => (
-                                        <SelectItem key={genre.id} value={String(genre.id)}>
-                                            {genre.name}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                        </div>
+                                                                    {allGenres.map(genre => (
+                                                                        <SelectItem key={genre.id} value={String(genre.id)}>
+                                                                            {genre.name}
+                                                                        </SelectItem>
+                                                                    ))}
+                                                                </SelectContent>
+                                                            </Select>
+                                                        </div>
 
-                        {/* Year Range Filter */}
-                        <div>
-                            <Label htmlFor="year" className="block text-sm font-medium mb-2">
-                                Release Year: {yearRange[0]} - {yearRange[1]}
-                            </Label>
-                            <Slider
-                                id="year"
-                                min={1900}
-                                max={currentYear}
-                                step={1}
-                                value={yearRange}
+                                                        {/* Year Range Filter */}
+                                                        <div>
+                                                            <Label htmlFor="year" className="block text-sm font-medium mb-2">
+                                                                Release Year: {yearRange[0]} - {yearRange[1]}
+                                                            </Label>
+                                                            <Slider
+                                                                id="year"
+                                                                min={1900}
+                                                                max={currentYear}
+                                                                step={1}
+                                                                value={yearRange}
                                                                 onValueChange={handleYearChange}
-                                className="mt-1"
-                            />
-                        </div>
+                                                                className="mt-1"
+                                                            />
+                                                        </div>
 
-                        {/* Rating Filter */}
-                        <div>
-                            <Label htmlFor="rating" className="block text-sm font-medium mb-2">
-                                Minimum Rating: {minRating}+
-                            </Label>
-                            <Slider
-                                id="rating"
-                                min={0}
-                                max={10}
-                                step={0.5}
+                                                        {/* Rating Filter */}
+                                                        <div>
+                                                            <Label htmlFor="rating" className="block text-sm font-medium mb-2">
+                                                                Minimum Rating: {minRating}+
+                                                            </Label>
+                                                            <Slider
+                                                                id="rating"
+                                                                min={0}
+                                                                max={10}
+                                                                step={0.5}
                                                                 value={[minRating]}
-                                onValueChange={handleRatingChange}
-                                className="mt-1"
-                            />
-                        </div>
+                                                                onValueChange={handleRatingChange}
+                                                                className="mt-1"
+                                                            />
+                                                        </div>
 
-                        {/* Streaming Services Filter */}
-                        <div>
+                                                        {/* Streaming Services Filter */}
+                                                        <div>
                                                             <Label className="block text-sm font-medium mb-2">Available On</Label>
-                            <Popover>
-                                <PopoverTrigger asChild>
+                                                            <Popover>
+                                                                <PopoverTrigger asChild>
                                                                     <Button variant="outline" className="w-full justify-start font-normal">
-                                        {selectedProviders.length === 0
-                                            ? "Any Service"
-                                            : `${selectedProviders.length} selected`}
-                                    </Button>
-                                </PopoverTrigger>
-                                <PopoverContent className="w-auto p-0" align="start">
-                                    <div className="p-4 grid grid-cols-2 gap-2 max-h-60 overflow-y-auto">
-                                        {STREAMING_PROVIDERS.map(provider => (
-                                            <div key={provider.id} className="flex items-center space-x-2">
-                                                <Checkbox
-                                                    id={`provider-${provider.id}`}
-                                                    checked={selectedProviders.includes(provider.id)}
-                                                    onCheckedChange={(checked) => handleProviderChange(provider.id, checked)}
+                                                                        {selectedProviders.length === 0
+                                                                            ? "Any Service"
+                                                                            : `${selectedProviders.length} selected`}
+                                                                    </Button>
+                                                                </PopoverTrigger>
+                                                                <PopoverContent className="w-auto p-0" align="start">
+                                                                    <div className="p-4 grid grid-cols-2 gap-2 max-h-60 overflow-y-auto">
+                                                                        {STREAMING_PROVIDERS.map(provider => (
+                                                                            <div key={provider.id} className="flex items-center space-x-2">
+                                                                                <Checkbox
+                                                                                    id={`provider-${provider.id}`}
+                                                                                    checked={selectedProviders.includes(provider.id)}
+                                                                                    onCheckedChange={(checked) => handleProviderChange(provider.id, checked)}
                                                                                     className="text-purple-600"
-                                                />
+                                                                                />
                                                                                 <Label htmlFor={`provider-${provider.id}`} className="text-sm font-medium leading-none cursor-pointer">
-                                                    {provider.name}
-                                                </Label>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </PopoverContent>
-                            </Popover>
-                        </div>
-                    </div>
+                                                                                    {provider.name}
+                                                                                </Label>
+                                                                            </div>
+                                                                        ))}
+                                                                    </div>
+                                                                </PopoverContent>
+                                                            </Popover>
+                                                        </div>
+                                                    </div>
                                                 </AccordionContent>
                                             </AccordionItem>
                                         </Accordion>
@@ -975,9 +989,9 @@ export default function Home(props) {
                                 </div>
                             </CardContent>
                         </Card>
-                </section>
+                    </section>
 
-                {/* Results Display Section */}
+                    {/* Results Display Section */}
                     <section className="mb-8">
                         <div className="flex items-center justify-between mb-4">
                             <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
@@ -995,8 +1009,8 @@ export default function Home(props) {
                             <div className="text-center py-16 bg-white rounded-xl shadow-md">
                                 <ArrowPathIcon className="h-12 w-12 mx-auto mb-4 text-purple-400 animate-spin" />
                                 <p className="text-gray-500">Loading results...</p>
-                        </div>
-                    )}
+                            </div>
+                        )}
 
                         {error && !isLoading && (
                             <div className="text-center py-8 bg-red-50 rounded-xl">
@@ -1004,16 +1018,16 @@ export default function Home(props) {
                                 <Button onClick={handleFilterChange} variant="outline" className="mt-4">
                                     Try Again
                                 </Button>
-                                </div>
-                            )}
+                            </div>
+                        )}
 
                         {!isLoading && !error && results.length === 0 && (
                             <div className="text-center py-16 bg-white rounded-xl shadow-md">
                                 <MagnifyingGlassIcon className="h-12 w-12 mx-auto mb-4 text-gray-300" />
                                 <p className="text-gray-500 mb-2">No results found</p>
                                 <p className="text-sm text-gray-400">Try adjusting your search or filters</p>
-                        </div>
-                    )}
+                            </div>
+                        )}
 
                         {!isLoading && results.length > 0 && (
                             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
@@ -1022,18 +1036,18 @@ export default function Home(props) {
                                     const isInWatchlist = watchlist.some(w => w.id === item.id && w.media_type === mediaType)
 
                                     return (
-                                <ResultItem 
+                                        <ResultItem
                                             key={`${mediaType}-${item.id}`}
                                             item={item}
-                                    onAddToWatchlist={addToWatchlist}
-                                    onShowDetails={handleShowDetails}
+                                            onAddToWatchlist={addToWatchlist}
+                                            onShowDetails={handleShowDetails}
                                             isAddedToWatchlist={isInWatchlist}
                                         />
                                     )
                                 })}
-                        </div>
-                    )} 
-                </section>
+                            </div>
+                        )}
+                    </section>
 
                     {/* Watchlist Section */}
                     <section>
@@ -1044,22 +1058,22 @@ export default function Home(props) {
                                         <CheckIcon className="h-5 w-5 text-purple-600" />
                                         <h2 className="text-xl font-semibold">My Watchlist ({watchlist.length})</h2>
                                     </div>
-                        </AccordionTrigger>
+                                </AccordionTrigger>
                                 <AccordionContent className="px-6 pb-6 pt-0">
-                            {watchlist.length > 0 ? (
+                                    {watchlist.length > 0 ? (
                                         <div className="space-y-3">
-                                    {watchlist.map((item) => (
+                                            {watchlist.map((item) => (
                                                 <div
                                                     key={`${item.media_type}-${item.id}`}
                                                     className="flex justify-between items-center p-3 rounded-lg hover:bg-gray-50 transition-colors border"
                                                 >
-                                            <div className="flex items-center space-x-3 cursor-pointer" onClick={() => handleShowDetails(item)} title="Show Details">
+                                                    <div className="flex items-center space-x-3 cursor-pointer" onClick={() => handleShowDetails(item)} title="Show Details">
                                                         <img
                                                             src={getImageUrl(item.poster_path, 'w92') || "/placeholder.svg?height=92&width=92"}
                                                             alt=""
                                                             className="w-12 h-auto object-cover rounded-md flex-shrink-0"
                                                         />
-                                                <div>
+                                                        <div>
                                                             <span className="font-medium text-sm hover:text-purple-600 transition-colors">{item.title}</span>
                                                             <div className="flex items-center gap-2 text-xs text-gray-500">
                                                                 {item.release_date && (
@@ -1085,15 +1099,15 @@ export default function Home(props) {
                                                     </Button>
                                                 </div>
                                             ))}
-                                            </div>
+                                        </div>
                                     ) : (
                                         <div className="text-center py-8 text-gray-500 italic">
                                             <p>Your watchlist is empty. Add items using the 'Add to Watchlist' button.</p>
                                         </div>
-                            )}
-                        </AccordionContent>
-                    </AccordionItem>
-                </Accordion>
+                                    )}
+                                </AccordionContent>
+                            </AccordionItem>
+                        </Accordion>
                     </section>
                 </div>
 
