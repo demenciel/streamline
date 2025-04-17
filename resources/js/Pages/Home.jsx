@@ -685,12 +685,44 @@ export default function Home(props) {
 
     return (
         <>
-            <Head title="Home" />
+            <Head>
+                <title>Vibeflix | End Netflix Doom Scrolling with Random Picks</title>
+                <meta name="description" content="Stop wasting time scrolling through Netflix. Vibeflix helps you discover movies and shows you'll love with just a few clicks using our 'Random Recommendation' feature." />
+                
+                {/* Open Graph / Facebook */}
+                <meta property="og:type" content="website" />
+                <meta property="og:url" content="https://vibeflix.com/" />
+                <meta property="og:title" content="Vibeflix | Random Movie & TV Recommendations" />
+                <meta property="og:description" content="End streaming decision paralysis. Get personalized movie and TV show recommendations with a few clicks." />
+                <meta property="og:image" content="/images/vibeflix-social-share.jpg" />
+                
+                {/* Twitter */}
+                <meta property="twitter:card" content="summary_large_image" />
+                <meta property="twitter:url" content="https://vibeflix.com/" />
+                <meta property="twitter:title" content="Vibeflix | End Netflix Doom Scrolling" />
+                <meta property="twitter:description" content="Get instant movie and TV recommendations. No more endless scrolling." />
+                <meta property="twitter:image" content="/images/vibeflix-social-share.jpg" />
+                
+                {/* Keywords */}
+                <meta name="keywords" content="movie recommendation, tv show recommendation, what to watch, random movie picker, netflix alternative, streaming recommendations, end doom scrolling" />
+                
+                {/* Canonical URL */}
+                <link rel="canonical" href="https://vibeflix.com/" />
+                
+                {/* Favicon */}
+                <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+                <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
+                <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+                
+                {/* Additional Meta Tags */}
+                <meta name="viewport" content="width=device-width, initial-scale=1" />
+                <meta name="theme-color" content="#111827" /> {/* Matches your bg-gray-900 background color */}
+            </Head>
             <div className="min-h-screen w-full bg-gray-900 text-white">
                 <div className="container mx-auto px-2 sm:px-4 py-4 sm:py-8 max-w-full overflow-x-hidden">
                     {/* Header Section - Improve mobile spacing */}
                     <div className="w-full flex flex-col items-center justify-between gap-3 mb-6">
-                        <h1 className="text-xl sm:text-2xl font-bold mb-2 sm:mb-4 text-center">Welcome to Streamline <span className="text-gray-400 text-xs sm:text-sm">({userRegion})</span></h1>
+                        <h1 className="text-xl sm:text-2xl font-bold mb-2 sm:mb-4 text-center">Welcome to Vibeflix <span className="text-gray-400 text-xs sm:text-sm">({userRegion})</span></h1>
                         <h3 className="text-gray-400 mb-2 sm:mb-4 text-center text-sm sm:text-base">Get recommendations for movies and TV shows based on your mood.</h3>
 
                         {/* Make buttons stack better on mobile */}
