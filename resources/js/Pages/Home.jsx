@@ -4,20 +4,17 @@ import React, { useState, useEffect, useCallback } from 'react'
 import { Head } from '@inertiajs/react'
 import axios from 'axios'
 import { debounce } from 'lodash'
+import { Play } from 'lucide-react'
 
 // Import shadcn components
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Slider } from "@/components/ui/slider"
-import { Checkbox } from "@/components/ui/checkbox"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
-import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Separator } from "@/components/ui/separator"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area"
 
 // Import custom components
 import { ResultItem } from "@/Components/ResultItem"
@@ -26,17 +23,11 @@ import { MediaCarousel } from '@/Components/MediaCarousel'
 
 // Import Heroicons
 import {
-    StarIcon,
-    PlusIcon,
     CheckIcon,
     MagnifyingGlassIcon,
-    FilmIcon,
-    TvIcon,
     CalendarIcon,
-    ClockIcon,
     XMarkIcon,
     SparklesIcon,
-    AdjustmentsHorizontalIcon,
     ArrowPathIcon,
     QuestionMarkCircleIcon
 } from "@heroicons/react/24/outline"
@@ -74,6 +65,13 @@ const QUIZ_QUESTIONS = [
             { label: "Sci-Fi/Fantasy", value: "878,14" },
             { label: "Family Animation", value: "10751,16" },
             { label: "Documentary", value: "99" },
+            { label: "Romance", value: "10749" },
+            { label: "Adventure", value: "12" },
+            { label: "Crime", value: "80" },
+            { label: "Mystery", value: "9648" },
+            { label: "War", value: "10752" },
+            { label: "Anime", value: "16" },
+
         ],
         param: "with_genres"
     },
@@ -139,6 +137,7 @@ export default function Home(props) {
     const [yearRange, setYearRange] = useState([1980, currentYear])
     const [minRating, setMinRating] = useState(6)
     const [selectedProviders, setSelectedProviders] = useState([])
+    const [isGridView, setIsGridView] = useState(false);
 
     // Details Dialog State
     const [isDetailsOpen, setIsDetailsOpen] = useState(false)
@@ -155,7 +154,9 @@ export default function Home(props) {
     const [quizResultsCache, setQuizResultsCache] = useState({})
     const [currentQuizPage, setCurrentQuizPage] = useState(1) // Track API page for quiz results
     const [quizRecommendations, setQuizRecommendations] = useState([])
-
+    const [showQuizResultCard, setShowQuizResultCard] = useState(false);
+    const [trendingItems, setTrendingItems] = useState([]); // State for trending items
+    const [searchActive, setSearchActive] = useState(false);
     // Watchlist State
     const [watchlist, setWatchlist] = useState(() => {
         const saved = localStorage.getItem('watchlist')
@@ -207,24 +208,26 @@ export default function Home(props) {
 
     // Fetch Genres on mount
     useEffect(() => {
-        const fetchGenres = async () => {
-            setIsLoading(true)
+        const fetchInitialData = async () => {
+            setIsLoading(true) // Use main loading state
             try {
+                // Fetch Genres
                 const [movieRes, tvRes] = await Promise.all([
                     axios.get('/api/tmdb/genres/movie'),
                     axios.get('/api/tmdb/genres/tv')
-                ])
-                setMovieGenres(movieRes.data.genres || [])
-                setTvGenres(tvRes.data.genres || [])
-                setError(null)
+                ]);
+                setMovieGenres(movieRes.data.genres || []);
+                setTvGenres(tvRes.data.genres || []);
+
+                setError(null);
             } catch (err) {
-                console.error("Failed to fetch genres:", err)
-                setError('Could not load genres. Please try refreshing.')
+                console.error("Failed to fetch initial data:", err)
+                setError('Could not load initial page data. Please try refreshing.');
             } finally {
-                setIsLoading(false)
+                setIsLoading(false);
             }
         }
-        fetchGenres()
+        fetchInitialData();
     }, [])
 
     // Combined genres for filter dropdown
@@ -316,6 +319,10 @@ export default function Home(props) {
     const handleInputChange = (e) => {
         const query = e.target.value
         setSearchQuery(query)
+        if (query) {
+            setShowQuizResultCard(false);
+        }
+        handleFilterChange();
     }
 
     // Generic filter change handler
@@ -422,6 +429,7 @@ export default function Home(props) {
         setQuizError(null)
         setQuizRecommendation(null)
         setQuizRecommendations([])
+        setShowQuizResultCard(false)
 
         const params = {}
         const answers = quizAnswers
@@ -463,6 +471,7 @@ export default function Home(props) {
                 setQuizRecommendations(availableResults)
                 setPreviousRecommendations(prev => [...prev, selectedItem])
                 setQuizRecommendation(selectedItem)
+                setShowQuizResultCard(true)
             } else {
                 // If all cached results have been shown or are in watchlist, 
                 // we'll fetch a new page of results
@@ -586,7 +595,7 @@ export default function Home(props) {
                     setQuizRecommendations(filteredResults)
                     setPreviousRecommendations(prev => [...prev, selectedItem])
                     setQuizRecommendation(selectedItem)
-                    setQuizActive(false)
+                    setShowQuizResultCard(true)
                 } else if (results.length > 0) {
                     // If all results are in watchlist/previously shown, just pick a random one
                     // but prioritize ones not in watchlist
@@ -601,6 +610,7 @@ export default function Home(props) {
 
                     setPreviousRecommendations(prev => [...prev, resultsToUse[randomIndex]])
                     setQuizRecommendation(resultsToUse[randomIndex])
+                    setShowQuizResultCard(true)
                 } else {
                     setQuizError("Couldn't find a match with those preferences. Try again!")
                 }
@@ -622,9 +632,10 @@ export default function Home(props) {
         setCurrentQuizPage(prev => prev + 1)
 
         const cacheKey = JSON.stringify(quizAnswers)
+        findQuizRecommendation()
 
         // If we have cached results, we can immediately get another recommendation
-        if (quizResultsCache[cacheKey] && quizResultsCache[cacheKey].length > 0) {
+        /* if (quizResultsCache[cacheKey] && quizResultsCache[cacheKey].length > 0) {
             setQuizLoading(true)
 
             // Filter out previously shown and watchlist items
@@ -652,482 +663,372 @@ export default function Home(props) {
                 setQuizRecommendations(availableResults)
                 setPreviousRecommendations(prev => [...prev, selectedItem])
                 setQuizRecommendation(selectedItem)
-                // need to hide the quiz recommendation card and the quiz
-                setQuizActive(false)
+                setShowQuizResultCard(true)
+            } else {
+                // If no more *suitable* cached results, fetch a new page
+                console.log('No suitable cached recommendations, fetching more...')
+                findQuizRecommendation()
             }
-        }
+        } else {
+            console.log('No suitable cached recommendations, fetching more...')
+            findQuizRecommendation()
+        } */
+        setQuizLoading(false)
+        setQuizActive(false)
+    }
 
-        // If no more cached results, fetch a new page
-        findQuizRecommendation()
+    // Handler to close the quiz result card
+    const closeQuizResultCard = () => {
+        setShowQuizResultCard(false)
+        setQuizRecommendation(null)
     }
 
     return (
         <>
-            <Head title="Minimalist Movie Finder" />
-            <div className="min-h-screen bg-gradient-to-b from-white to-gray-50 font-sans">
-                {/* Header */}
-                <header className="bg-gradient-purple text-white py-8 px-4 mb-8 shadow-md">
-                    <div className="container mx-auto text-center">
-                        <h1 className="text-4xl md:text-5xl font-bold mb-2 flex items-center justify-center gap-2">
-                            <FilmIcon className="h-8 w-8" />
-                            <span>Movie Finder</span>
-                        </h1>
-                        <p className="text-sm md:text-base opacity-90">
-                            Discover your next favorite movie or TV show
-                        </p>
-                        <div className="text-xs mt-2 opacity-75">
-                            <span title="Content recommendations are based on this region">Region: {regionName} ({userRegion})</span>
+            <Head title="Home" />
+            <div className="min-h-screen w-full bg-gray-900 text-white">
+                <div className="container mx-auto px-2 sm:px-4 py-4 sm:py-8 max-w-full overflow-x-hidden">
+                    {/* Header Section - Improve mobile spacing */}
+                    <div className="w-full flex flex-col items-center justify-between gap-3 mb-6">
+                        <h1 className="text-xl sm:text-2xl font-bold mb-2 sm:mb-4 text-center">Welcome to Streamline <span className="text-gray-400 text-xs sm:text-sm">({userRegion})</span></h1>
+                        <h3 className="text-gray-400 mb-2 sm:mb-4 text-center text-sm sm:text-base">Get recommendations for movies and TV shows based on your mood.</h3>
+
+                        {/* Make buttons stack better on mobile */}
+                        <div className='flex flex-col sm:flex-row items-center justify-between gap-3 mt-4 sm:mt-8 w-full'>
+                            <Button
+                                onClick={startQuiz}
+                                className="w-full h-10 sm:h-12 bg-purple-900 hover:bg-purple-800 text-white"
+                            >
+                                <SparklesIcon className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
+                                Random Recommendation
+                            </Button>
+                            <Button
+                                onClick={() => setSearchActive(!searchActive)}
+                                className="w-full h-10 sm:h-12 border border-purple-900 bg-transparent hover:bg-purple-800 text-white"
+                            >
+                                <MagnifyingGlassIcon className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
+                                Search
+                            </Button>
                         </div>
+
+                        {/* Improve search input responsive layout */}
+                        {searchActive && (
+                            <div className="relative w-full mt-4">
+                                <Input
+                                    type="text"
+                                    placeholder="Search movies and TV shows..."
+                                    value={searchQuery}
+                                    onChange={handleInputChange}
+                                    className="w-full pl-10 bg-gray-900 border-gray-800 text-white placeholder:text-gray-400"
+                                />
+                                <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+                            </div>
+                        )}
                     </div>
-                </header>
 
-                <div className="container mx-auto px-4 pb-12">
-                    {/* "I'm Feeling Lucky" Section */}
-                    <section className="mb-8 relative">
-                        <Card className="overflow-hidden border-0 shadow-lg rounded-2xl">
-                            <CardContent className="p-0">
-                                <div className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white p-6">
-                                    <div className="flex items-center gap-2 mb-4">
-                                        <SparklesIcon className="h-6 w-6" />
-                                        <h2 className="text-2xl font-bold">I'm Feeling Lucky</h2>
-                                    </div>
-                                    <p className="opacity-90">Not sure what to watch? Let us recommend something based on your mood!</p>
+                    {/* "I'm Feeling Lucky" Result Card */}
+                    {showQuizResultCard && quizRecommendation && !quizActive && (
+                        <div className="mt-12">
+                            <h3 className="text-xl font-semibold mb-6 text-center">We recommend:</h3>
+
+                            {/* Replace separate featured item with central carousel */}
+                            {quizRecommendations.length > 0 && (
+                                <div className="my-4">
+                                    <MediaCarousel
+                                        title=""
+                                        items={quizRecommendations}
+                                        onAddToWatchlist={addToWatchlist}
+                                        onShowDetails={handleShowDetails}
+                                        watchlist={watchlist}
+                                        onRequestMoreItems={fetchAnotherRecommendation}
+                                        featuredItemId={quizRecommendation.id}
+                                        onItemSelect={(item) => {
+                                            // Update the featured recommendation when a different item is selected
+                                            setQuizRecommendation(item);
+                                        }}
+                                    />
                                 </div>
-
-                                <div className="p-6">
-                                    {!quizActive && !quizRecommendation && !quizLoading && !quizError && (
-                                        <div className="text-center py-8">
-                                            <QuestionMarkCircleIcon className="h-16 w-16 mx-auto mb-4 text-purple-200" />
-                                            <p className="mb-6 text-gray-600">Answer 5 quick questions to get a personalized recommendation!</p>
-                                            <Button
-                                                onClick={startQuiz}
-                                                className="bg-purple-600 hover:bg-purple-700 text-white"
-                                                size="lg"
-                                            >
-                                                Start Quiz
-                                            </Button>
-                                        </div>
-                                    )}
-
-                                    {quizActive && (
-                                        <div className="max-w-xl mx-auto">
-                                            <div className="flex justify-between items-center mb-6">
-                                                <h3 className="text-lg font-medium">Question {currentQuestionIndex + 1} of {QUIZ_QUESTIONS.length}</h3>
-                                                <span className="text-sm text-gray-500">{Math.round((currentQuestionIndex / QUIZ_QUESTIONS.length) * 100)}% complete</span>
-                                            </div>
-
-                                            {/* Progress bar */}
-                                            <div className="w-full h-2 bg-gray-200 rounded-full mb-6">
-                                                <div
-                                                    className="h-2 bg-purple-600 rounded-full transition-all duration-300"
-                                                    style={{ width: `${(currentQuestionIndex / QUIZ_QUESTIONS.length) * 100}%` }}
-                                                ></div>
-                                            </div>
-
-                                            <p className="mb-4 font-semibold text-xl">{QUIZ_QUESTIONS[currentQuestionIndex].question}</p>
-
-                                            {QUIZ_QUESTIONS[currentQuestionIndex].type === 'radio' && (
-                                                <RadioGroup
-                                                    value={quizAnswers[QUIZ_QUESTIONS[currentQuestionIndex].key] || ''}
-                                                    onValueChange={(value) => handleQuizAnswer(QUIZ_QUESTIONS[currentQuestionIndex].key, value)}
-                                                    className="space-y-3 mb-6"
-                                                >
-                                                    {QUIZ_QUESTIONS[currentQuestionIndex].options.map(opt => (
-                                                        <div key={opt.value} className="flex items-center space-x-2 p-3 rounded-lg border hover:border-purple-300 hover:bg-purple-50 transition-colors">
-                                                            <RadioGroupItem
-                                                                value={opt.value}
-                                                                id={`${QUIZ_QUESTIONS[currentQuestionIndex].key}-${opt.value}`}
-                                                                className="text-purple-600"
-                                                            />
-                                                            <Label
-                                                                htmlFor={`${QUIZ_QUESTIONS[currentQuestionIndex].key}-${opt.value}`}
-                                                                className="flex-grow cursor-pointer"
-                                                            >
-                                                                {opt.label}
-                                                            </Label>
-                                                        </div>
-                                                    ))}
-                                                </RadioGroup>
-                                            )}
-
-                                            {QUIZ_QUESTIONS[currentQuestionIndex].type === 'checkbox' && (
-                                                <div className="space-y-2 mb-6 grid grid-cols-2 gap-3">
-                                                    {QUIZ_QUESTIONS[currentQuestionIndex].options.map(opt => (
-                                                        <div
-                                                            key={opt.value}
-                                                            className="flex items-center space-x-2 p-3 rounded-lg border hover:border-purple-300 hover:bg-purple-50 transition-colors"
-                                                        >
-                                                            <Checkbox
-                                                                id={`${QUIZ_QUESTIONS[currentQuestionIndex].key}-${opt.value}`}
-                                                                checked={(quizAnswers[QUIZ_QUESTIONS[currentQuestionIndex].key] || []).includes(opt.value)}
-                                                                onCheckedChange={(checked) => {
-                                                                    const currentSelection = quizAnswers[QUIZ_QUESTIONS[currentQuestionIndex].key] || []
-                                                                    const newSelection = checked
-                                                                        ? [...currentSelection, opt.value]
-                                                                        : currentSelection.filter(v => v !== opt.value)
-                                                                    handleQuizAnswer(QUIZ_QUESTIONS[currentQuestionIndex].key, newSelection)
-                                                                }}
-                                                                className="text-purple-600"
-                                                            />
-                                                            <Label
-                                                                htmlFor={`${QUIZ_QUESTIONS[currentQuestionIndex].key}-${opt.value}`}
-                                                                className="text-sm font-medium leading-none flex items-center cursor-pointer"
-                                                            >
-                                                                {opt.label}
-                                                            </Label>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            )}
-
-                                            <Button
-                                                onClick={goToNextQuestion}
-                                                disabled={!quizAnswers[QUIZ_QUESTIONS[currentQuestionIndex].key] && QUIZ_QUESTIONS[currentQuestionIndex].type === 'radio'}
-                                                className="bg-purple-600 hover:bg-purple-700 text-white"
-                                            >
-                                                {currentQuestionIndex < QUIZ_QUESTIONS.length - 1 ? 'Next Question' : 'Get Recommendation'}
-                                            </Button>
-                                        </div>
-                                    )}
-
-                                    {quizLoading && (
-                                        <div className="text-center py-12">
-                                            <ArrowPathIcon className="h-12 w-12 mx-auto mb-4 text-purple-400 animate-spin" />
-                                            <p className="text-gray-500">Finding your perfect match...</p>
-                                        </div>
-                                    )}
-
-                                    {quizError && (
-                                        <div className="text-center py-8">
-                                            <p className="text-red-600 bg-red-50 p-4 rounded-lg mb-4">{quizError}</p>
-                                            <Button onClick={startQuiz} variant="outline">Try Again</Button>
-                                        </div>
-                                    )}
-
-                                    {quizRecommendation && !quizLoading && (
-                                        <div className="mt-6">
-                                            <h3 className="text-xl font-semibold mb-6 text-center">We recommend:</h3>
-
-                                            {/* Replace separate featured item with central carousel */}
-                                            {quizRecommendations.length > 0 && (
-                                                <div className="my-4">
-                                                    <MediaCarousel
-                                                        title=""
-                                                        items={quizRecommendations}
-                                                        onAddToWatchlist={addToWatchlist}
-                                                        onShowDetails={handleShowDetails}
-                                                        watchlist={watchlist}
-                                                        onRequestMoreItems={fetchAnotherRecommendation}
-                                                        featuredItemId={quizRecommendation.id}
-                                                        onItemSelect={(item) => {
-                                                            // Update the featured recommendation when a different item is selected
-                                                            setQuizRecommendation(item);
-                                                        }}
-                                                    />
-                                                </div>
-                                            )}
-
-                                            <div className="text-center mt-10 space-x-4">
-                                                <Button
-                                                    onClick={fetchAnotherRecommendation}
-                                                    variant="outline"
-                                                    className="border-purple-300 hover:border-purple-500 hover:text-purple-600"
-                                                >
-                                                    Try Another
-                                                </Button>
-                                                <Button
-                                                    onClick={startQuiz}
-                                                    variant="secondary"
-                                                >
-                                                    Restart Quiz
-                                                </Button>
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    {(quizError || quizRecommendation) && !quizLoading && (
-                                        <div className="text-center mt-4">
-                                            <Button
-                                                onClick={() => { setQuizError(null); setQuizRecommendation(null); setQuizActive(false); }}
-                                                variant="link"
-                                                className="text-purple-600"
-                                            >
-                                                Back to Search
-                                            </Button>
-                                        </div>
-                                    )}
-                                </div>
-                            </CardContent>
-                        </Card>
-                    </section>
-
-                    {/* Search & Filter Section */}
-                    <section className="mb-8">
-                        <Card className="overflow-hidden border-0 shadow-lg rounded-2xl">
-                            <CardContent className="p-0">
-                                <div className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white p-6">
-                                    <div className="flex items-center gap-2 mb-4">
-                                        <MagnifyingGlassIcon className="h-6 w-6" />
-                                        <h2 className="text-2xl font-bold">Find Something to Watch</h2>
-                                    </div>
-                                    <p className="opacity-90">Search for movies and TV shows or use filters to discover new content</p>
-                                </div>
-
-                                <div className="p-6">
-                                    {/* Search Input */}
-                                    <div className="mb-6">
-                                        <div className="relative">
-                                            <MagnifyingGlassIcon className="h-5 w-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-                                            <Input
-                                                id="search"
-                                                type="text"
-                                                placeholder="Search movies or TV shows... (e.g., Dune, The Bear)"
-                                                value={searchQuery}
-                                                onChange={handleInputChange}
-                                                className="pl-10 py-6 text-lg rounded-xl border-gray-200 focus:border-purple-300 focus:ring-purple-300"
-                                            />
-                                        </div>
-                                    </div>
-
-                                    {/* Filters */}
-                                    <div className="mb-4">
-                                        <Accordion type="single" collapsible defaultValue="filters">
-                                            <AccordionItem value="filters" className="border-none">
-                                                <AccordionTrigger className="py-2 px-0 hover:no-underline">
-                                                    <div className="flex items-center gap-2 text-purple-700">
-                                                        <AdjustmentsHorizontalIcon className="h-5 w-5" />
-                                                        <span className="font-medium">Advanced Filters</span>
-                                                    </div>
-                                                </AccordionTrigger>
-                                                <AccordionContent>
-                                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 items-start mt-4">
-                                                        {/* Genre Filter */}
-                                                        <div>
-                                                            <Label htmlFor="genre" className="text-sm font-medium mb-2 block">Genre</Label>
-                                                            <Select value={selectedGenre} onValueChange={handleGenreChange}>
-                                                                <SelectTrigger id="genre" className="w-full">
-                                                                    <SelectValue placeholder="Any Genre" />
-                                                                </SelectTrigger>
-                                                                <SelectContent>
-                                                                    <SelectItem value="all">Any Genre</SelectItem>
-                                                                    {allGenres.map(genre => (
-                                                                        <SelectItem key={genre.id} value={String(genre.id)}>
-                                                                            {genre.name}
-                                                                        </SelectItem>
-                                                                    ))}
-                                                                </SelectContent>
-                                                            </Select>
-                                                        </div>
-
-                                                        {/* Year Range Filter */}
-                                                        <div>
-                                                            <Label htmlFor="year" className="block text-sm font-medium mb-2">
-                                                                Release Year: {yearRange[0]} - {yearRange[1]}
-                                                            </Label>
-                                                            <Slider
-                                                                id="year"
-                                                                min={1900}
-                                                                max={currentYear}
-                                                                step={1}
-                                                                value={yearRange}
-                                                                onValueChange={handleYearChange}
-                                                                className="mt-1"
-                                                            />
-                                                        </div>
-
-                                                        {/* Rating Filter */}
-                                                        <div>
-                                                            <Label htmlFor="rating" className="block text-sm font-medium mb-2">
-                                                                Minimum Rating: {minRating}+
-                                                            </Label>
-                                                            <Slider
-                                                                id="rating"
-                                                                min={0}
-                                                                max={10}
-                                                                step={0.5}
-                                                                value={[minRating]}
-                                                                onValueChange={handleRatingChange}
-                                                                className="mt-1"
-                                                            />
-                                                        </div>
-
-                                                        {/* Streaming Services Filter */}
-                                                        <div>
-                                                            <Label className="block text-sm font-medium mb-2">Available On</Label>
-                                                            <Popover>
-                                                                <PopoverTrigger asChild>
-                                                                    <Button variant="outline" className="w-full justify-start font-normal">
-                                                                        {selectedProviders.length === 0
-                                                                            ? "Any Service"
-                                                                            : `${selectedProviders.length} selected`}
-                                                                    </Button>
-                                                                </PopoverTrigger>
-                                                                <PopoverContent className="w-auto p-0" align="start">
-                                                                    <div className="p-4 grid grid-cols-2 gap-2 max-h-60 overflow-y-auto">
-                                                                        {STREAMING_PROVIDERS.map(provider => (
-                                                                            <div key={provider.id} className="flex items-center space-x-2">
-                                                                                <Checkbox
-                                                                                    id={`provider-${provider.id}`}
-                                                                                    checked={selectedProviders.includes(provider.id)}
-                                                                                    onCheckedChange={(checked) => handleProviderChange(provider.id, checked)}
-                                                                                    className="text-purple-600"
-                                                                                />
-                                                                                <Label htmlFor={`provider-${provider.id}`} className="text-sm font-medium leading-none cursor-pointer">
-                                                                                    {provider.name}
-                                                                                </Label>
-                                                                            </div>
-                                                                        ))}
-                                                                    </div>
-                                                                </PopoverContent>
-                                                            </Popover>
-                                                        </div>
-                                                    </div>
-                                                </AccordionContent>
-                                            </AccordionItem>
-                                        </Accordion>
-                                    </div>
-                                </div>
-                            </CardContent>
-                        </Card>
-                    </section>
-
-                    {/* Results Display Section */}
-                    <section className="mb-8">
-                        <div className="flex items-center justify-between mb-4">
-                            <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
-                                <FilmIcon className="h-6 w-6 text-purple-600" />
-                                Results
-                            </h2>
-                            {results.length > 0 && !isLoading && (
-                                <Badge variant="outline" className="text-sm">
-                                    {results.length} items found
-                                </Badge>
                             )}
                         </div>
+                    )}
 
-                        {isLoading && (
-                            <div className="text-center py-16 bg-white rounded-xl shadow-md">
-                                <ArrowPathIcon className="h-12 w-12 mx-auto mb-4 text-purple-400 animate-spin" />
-                                <p className="text-gray-500">Loading results...</p>
-                            </div>
-                        )}
+                    {/* Results Section */}
+                    {isLoading ? (
+                        <div className="text-center py-12">
+                            <ArrowPathIcon className="h-8 w-8 animate-spin mx-auto text-purple-500" />
+                            <p className="mt-2 text-gray-400">Loading...</p>
+                        </div>
+                    ) : error ? (
+                        <div className="text-center py-12 text-red-400 bg-red-900/20 rounded-lg">
+                            <p>{error}</p>
+                        </div>
+                    ) : (results.length > 0 || !quizRecommendation) ? (
+                        <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2 sm:gap-4">
+                            {results.map(item => (
+                                <ResultItem
+                                    key={`${item.id}-${item.media_type}`}
+                                    item={item}
+                                    onAddToWatchlist={addToWatchlist}
+                                    onShowDetails={handleShowDetails}
+                                    isAddedToWatchlist={watchlist.some(
+                                        w => w.id === item.id && w.media_type === item.media_type
+                                    )}
+                                />
+                            ))}
+                        </div>
+                    ) : !quizRecommendation && !quizActive && (
+                        <div className="text-center py-12">
+                            <QuestionMarkCircleIcon className="h-12 w-12 mx-auto text-gray-600" />
+                            <p className="mt-4 text-gray-400">
+                                {searchQuery
+                                    ? "No results found. Try adjusting your search or filters."
+                                    : "Search for movies and TV shows, or try the 'I'm Feeling Lucky' quiz!"}
+                            </p>
+                        </div>
+                    )}
 
-                        {error && !isLoading && (
-                            <div className="text-center py-8 bg-red-50 rounded-xl">
-                                <p className="text-red-600">{error}</p>
-                                <Button onClick={handleFilterChange} variant="outline" className="mt-4">
-                                    Try Again
-                                </Button>
-                            </div>
-                        )}
-
-                        {!isLoading && !error && results.length === 0 && (
-                            <div className="text-center py-16 bg-white rounded-xl shadow-md">
-                                <MagnifyingGlassIcon className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-                                <p className="text-gray-500 mb-2">No results found</p>
-                                <p className="text-sm text-gray-400">Try adjusting your search or filters</p>
-                            </div>
-                        )}
-
-                        {!isLoading && results.length > 0 && (
-                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-                                {results.map(item => {
-                                    const mediaType = item.media_type || (item.title ? 'movie' : 'tv')
-                                    const isInWatchlist = watchlist.some(w => w.id === item.id && w.media_type === mediaType)
-
-                                    return (
-                                        <ResultItem
-                                            key={`${mediaType}-${item.id}`}
-                                            item={item}
-                                            onAddToWatchlist={addToWatchlist}
-                                            onShowDetails={handleShowDetails}
-                                            isAddedToWatchlist={isInWatchlist}
-                                        />
-                                    )
-                                })}
-                            </div>
-                        )}
-                    </section>
-
-                    {/* Watchlist Section */}
-                    <section>
-                        <Accordion type="single" collapsible className="bg-white rounded-2xl shadow-lg border-0 overflow-hidden">
-                            <AccordionItem value="watchlist" className="border-0">
-                                <AccordionTrigger className="px-6 py-4 hover:no-underline">
-                                    <div className="flex items-center gap-2 text-gray-800">
-                                        <CheckIcon className="h-5 w-5 text-purple-600" />
-                                        <h2 className="text-xl font-semibold">My Watchlist ({watchlist.length})</h2>
+                    {/* Watchlist Section - Make it more mobile-friendly */}
+                    <section className="mt-8 sm:mt-12">
+                        <Accordion type="single" collapsible defaultValue="watchlist" className="bg-gray-900 rounded-xl shadow-lg border border-gray-800 overflow-hidden">
+                            <AccordionItem value="watchlist" className="border-b-0">
+                                <AccordionTrigger className="px-3 sm:px-6 py-3 sm:py-4 hover:no-underline hover:bg-gray-800/50 transition-colors">
+                                    <div className="flex items-center gap-2 text-white w-full">
+                                        <CheckIcon className="h-4 w-4 sm:h-5 sm:w-5 text-purple-400" />
+                                        <h2 className="text-base sm:text-xl font-semibold">My Watchlist</h2>
+                                        <Badge variant="secondary" className="ml-auto bg-gray-700 text-gray-300">{watchlist.length}</Badge>
                                     </div>
                                 </AccordionTrigger>
-                                <AccordionContent className="px-6 pb-6 pt-0">
+                                <AccordionContent className="px-3 sm:px-6 pb-4 sm:pb-6 pt-0">
                                     {watchlist.length > 0 ? (
-                                        <div className="space-y-3">
-                                            {watchlist.map((item) => (
-                                                <div
-                                                    key={`${item.media_type}-${item.id}`}
-                                                    className="flex justify-between items-center p-3 rounded-lg hover:bg-gray-50 transition-colors border"
-                                                >
-                                                    <div className="flex items-center space-x-3 cursor-pointer" onClick={() => handleShowDetails(item)} title="Show Details">
-                                                        <img
-                                                            src={getImageUrl(item.poster_path, 'w92') || "/placeholder.svg?height=92&width=92"}
-                                                            alt=""
-                                                            className="w-12 h-auto object-cover rounded-md flex-shrink-0"
-                                                        />
-                                                        <div>
-                                                            <span className="font-medium text-sm hover:text-purple-600 transition-colors">{item.title}</span>
-                                                            <div className="flex items-center gap-2 text-xs text-gray-500">
-                                                                {item.release_date && (
-                                                                    <span className="flex items-center">
-                                                                        <CalendarIcon className="h-3 w-3 mr-1" />
-                                                                        {item.release_date?.substring(0, 4)}
-                                                                    </span>
-                                                                )}
-                                                                <Badge variant="outline" className="text-xs px-1.5 py-0">
-                                                                    {item.media_type === 'movie' ? 'Movie' : 'TV'}
-                                                                </Badge>
+                                        <div className="space-y-3 mt-4">
+                                            {watchlist.map((item) => {
+                                                const mediaType = item.media_type || (item.title ? 'movie' : 'tv');
+                                                const itemYear = item.release_date?.substring(0, 4);
+                                                return (
+                                                    <div
+                                                        key={`${mediaType}-${item.id}`}
+                                                        className="flex justify-between items-center p-3 rounded-lg hover:bg-gray-800 transition-colors border border-gray-700"
+                                                    >
+                                                        <div className="flex items-center space-x-4 cursor-pointer flex-1 min-w-0" onClick={() => handleShowDetails(item)} title="Show Details">
+                                                            <img
+                                                                src={getImageUrl(item.poster_path, 'w92') || "/placeholder.svg?height=92&width=92"}
+                                                                alt={item.title}
+                                                                className="w-12 h-[72px] object-cover rounded-md flex-shrink-0 bg-gray-700"
+                                                            />
+                                                            <div className="flex-1 min-w-0">
+                                                                <span className="font-medium text-sm hover:text-purple-400 transition-colors block truncate">
+                                                                    {item.title}
+                                                                </span>
+                                                                <div className="flex items-center gap-2 text-xs text-gray-400 mt-1">
+                                                                    {itemYear && (
+                                                                        <span className="flex items-center">
+                                                                            <CalendarIcon className="h-3 w-3 mr-1 opacity-70" />
+                                                                            {itemYear}
+                                                                        </span>
+                                                                    )}
+                                                                    <Badge variant="outline" className="text-xs px-1.5 py-0 border-gray-600 text-gray-400">
+                                                                        {mediaType === 'movie' ? 'Movie' : 'TV'}
+                                                                    </Badge>
+                                                                </div>
                                                             </div>
                                                         </div>
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            onClick={(e) => { e.stopPropagation(); removeFromWatchlist(item); }}
+                                                            className="text-red-500 hover:text-red-400 hover:bg-red-900/30 rounded-full w-8 h-8 flex-shrink-0 ml-3"
+                                                            title="Remove from watchlist"
+                                                        >
+                                                            <XMarkIcon className="h-5 w-5" />
+                                                        </Button>
                                                     </div>
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="icon"
-                                                        onClick={(e) => { e.stopPropagation(); removeFromWatchlist(item); }}
-                                                        className="text-red-500 hover:text-red-700 hover:bg-red-50 rounded-full w-8 h-8"
-                                                        title="Remove from watchlist"
-                                                    >
-                                                        <XMarkIcon className="h-5 w-5" />
-                                                    </Button>
-                                                </div>
-                                            ))}
+                                                );
+                                            })}
                                         </div>
                                     ) : (
                                         <div className="text-center py-8 text-gray-500 italic">
-                                            <p>Your watchlist is empty. Add items using the 'Add to Watchlist' button.</p>
+                                            <p>Your watchlist is empty. Add items using the '+' button on search results.</p>
                                         </div>
                                     )}
                                 </AccordionContent>
                             </AccordionItem>
                         </Accordion>
                     </section>
-                </div>
 
-                {/* Details Dialog */}
-                <DetailsDialog
-                    isOpen={isDetailsOpen}
-                    onClose={handleCloseDetails}
-                    item={selectedItemDetails}
-                    onAddToWatchlist={addToWatchlist}
-                    isAddedToWatchlist={
-                        selectedItemDetails
-                            ? watchlist.some(w => {
-                                const mediaType = selectedItemDetails.media_type ||
-                                    (selectedItemDetails.title ? 'movie' : 'tv')
-                                return w.id === selectedItemDetails.id && w.media_type === mediaType
-                            })
-                            : false
-                    }
-                />
+                    {/* Quiz Dialog */}
+                    {quizActive && (
+                        <Dialog open={quizActive} onOpenChange={setQuizActive}>
+                            <DialogContent className="sm:max-w-[500px] bg-gray-900 border-gray-800 text-white">
+                                <DialogHeader>
+                                    <DialogTitle className="text-xl font-bold text-white">
+                                        {quizRecommendation ? "Here's what you might like!" : "Let's find something to watch"}
+                                    </DialogTitle>
+                                    {!quizRecommendation && (
+                                        <DialogDescription className="text-gray-400">
+                                            Question {currentQuestionIndex + 1} of {QUIZ_QUESTIONS.length}
+                                        </DialogDescription>
+                                    )}
+                                </DialogHeader>
+
+                                {quizLoading ? (
+                                    <div className="py-8 text-center">
+                                        <ArrowPathIcon className="h-8 w-8 animate-spin mx-auto text-purple-500" />
+                                        <p className="mt-2 text-gray-400">Finding the perfect match...</p>
+                                    </div>
+                                ) : quizError ? (
+                                    <div className="py-8 text-center">
+                                        <p className="text-red-400">{quizError}</p>
+                                        <Button
+                                            onClick={startQuiz}
+                                            className="mt-4 bg-purple-900 hover:bg-purple-800 text-white"
+                                        >
+                                            Try Again
+                                        </Button>
+                                    </div>
+                                ) : quizRecommendation ? (
+                                    <div>
+                                        <div className="relative aspect-[2/3] mb-4">
+                                            <img
+                                                src={getImageUrl(quizRecommendation.poster_path, 'w500')}
+                                                alt={quizRecommendation.title || quizRecommendation.name}
+                                                className="w-full h-full object-cover rounded-lg"
+                                            />
+                                        </div>
+                                        <h3 className="text-xl font-bold mb-2">
+                                            {quizRecommendation.title || quizRecommendation.name}
+                                        </h3>
+                                        <p className="text-gray-400 mb-4">{quizRecommendation.overview}</p>
+                                        <div className="flex justify-between gap-4">
+                                            <Button
+                                                onClick={() => handleShowDetails(quizRecommendation)}
+                                                className="flex-1 bg-purple-900 hover:bg-purple-800 text-white"
+                                            >
+                                                View Details
+                                            </Button>
+                                            <Button
+                                                onClick={fetchAnotherRecommendation}
+                                                variant="outline"
+                                                className="flex-1 border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white"
+                                            >
+                                                Try Another
+                                            </Button>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div>
+                                        <div className="py-4">
+                                            <h3 className="text-lg font-medium mb-4 text-white">
+                                                {QUIZ_QUESTIONS[currentQuestionIndex].question}
+                                            </h3>
+                                            {QUIZ_QUESTIONS[currentQuestionIndex].type === 'radio' ? (
+                                                <ScrollArea className="h-[350px] pr-2">
+                                                    <RadioGroup
+                                                        value={quizAnswers[QUIZ_QUESTIONS[currentQuestionIndex].key] || ''}
+                                                        onValueChange={(value) =>
+                                                            handleQuizAnswer(QUIZ_QUESTIONS[currentQuestionIndex].key, value)
+                                                        }
+                                                        className="space-y-2"
+                                                    >
+                                                        {QUIZ_QUESTIONS[currentQuestionIndex].options.map(option => (
+                                                            <div
+                                                                key={option.value}
+                                                                className={`
+                                                                    flex items-center space-x-2 rounded-lg border p-4 cursor-pointer transition-colors
+                                                                    ${quizAnswers[QUIZ_QUESTIONS[currentQuestionIndex].key] === option.value
+                                                                        ? 'bg-purple-900/20 border-purple-500'
+                                                                        : 'bg-gray-800 border-gray-700 hover:border-gray-600'
+                                                                    }
+                                                                `}
+                                                            >
+                                                                <RadioGroupItem
+                                                                    value={option.value}
+                                                                    id={option.value}
+                                                                    className="text-purple-500"
+                                                                />
+                                                                <Label
+                                                                    htmlFor={option.value}
+                                                                    className="flex-1 cursor-pointer text-gray-300"
+                                                                >
+                                                                    {option.label}
+                                                                </Label>
+                                                            </div>
+                                                        ))}
+                                                    </RadioGroup>
+                                                    <ScrollBar orientation="vertical" />
+                                                </ScrollArea>
+                                            ) : (
+                                                <div className="grid grid-cols-2 gap-2">
+                                                    {QUIZ_QUESTIONS[currentQuestionIndex].options.map(option => (
+                                                        <div
+                                                            key={option.value}
+                                                            className={`
+                                                                relative rounded-lg border p-4 cursor-pointer transition-colors
+                                                                ${(quizAnswers[QUIZ_QUESTIONS[currentQuestionIndex].key] || []).includes(option.value)
+                                                                    ? 'bg-purple-900/20 border-purple-500'
+                                                                    : 'bg-gray-800 border-gray-700 hover:border-gray-600'
+                                                                }
+                                                            `}
+                                                            onClick={() => {
+                                                                const currentValues = quizAnswers[QUIZ_QUESTIONS[currentQuestionIndex].key] || [];
+                                                                const newValues = currentValues.includes(option.value)
+                                                                    ? currentValues.filter(v => v !== option.value)
+                                                                    : [...currentValues, option.value];
+                                                                handleQuizAnswer(QUIZ_QUESTIONS[currentQuestionIndex].key, newValues);
+                                                            }}
+                                                        >
+                                                            {/* {option.logo ? (
+                                                                <img
+                                                                    src={getImageUrl(option.logo, 'w92')}
+                                                                    alt={option.label}
+                                                                    className="w-full h-auto rounded mb-2"
+                                                                />
+                                                            ) : null} */}
+                                                            <Label className="text-sm text-center block text-gray-300">
+                                                                {option.label}
+                                                            </Label>
+                                                            {(quizAnswers[QUIZ_QUESTIONS[currentQuestionIndex].key] || []).includes(option.value) && (
+                                                                <div className="absolute -top-2 -right-2 bg-purple-500 rounded-full p-0.5">
+                                                                    <CheckIcon className="h-3 w-3 text-white" />
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+                                        <DialogFooter>
+                                            <Button
+                                                onClick={goToNextQuestion}
+                                                disabled={!quizAnswers[QUIZ_QUESTIONS[currentQuestionIndex].key]}
+                                                className="w-full bg-purple-900 hover:bg-purple-800 text-white disabled:bg-gray-700"
+                                            >
+                                                {currentQuestionIndex === QUIZ_QUESTIONS.length - 1 ? "Find Matches" : "Next"}
+                                            </Button>
+                                        </DialogFooter>
+                                    </div>
+                                )}
+                            </DialogContent>
+                        </Dialog>
+                    )}
+
+                    {/* Details Dialog */}
+                    <DetailsDialog
+                        isOpen={isDetailsOpen}
+                        onClose={handleCloseDetails}
+                        item={selectedItemDetails}
+                        onAddToWatchlist={addToWatchlist}
+                        isAddedToWatchlist={
+                            selectedItemDetails
+                                ? watchlist.some(w => {
+                                    const mediaType = selectedItemDetails.media_type ||
+                                        (selectedItemDetails.title ? 'movie' : 'tv')
+                                    return w.id === selectedItemDetails.id && w.media_type === mediaType
+                                })
+                                : false
+                        }
+                    />
+                </div>
             </div>
         </>
-    )
+    );
 } 

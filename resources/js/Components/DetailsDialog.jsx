@@ -9,12 +9,14 @@ import {
     DialogDescription,
     DialogFooter,
     DialogClose,
+    DialogTrigger,
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Check, Plus, Star, Calendar, Clock, Film, Tv, Play } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { XMarkIcon } from '@heroicons/react/24/outline';
 
 // Utility function (can be moved)
 const getImageUrl = (path, size = "w500") => {
@@ -108,6 +110,14 @@ export function DetailsDialog({ isOpen, onClose, item, onAddToWatchlist, isAdded
             setIsLoading(false);
             setError(null);
         }
+        return () => {
+            setDetails(null);
+            setProviders(null);
+            setVideos(null);
+            setIsLoading(false);
+            setError(null);
+            setActiveTab('overview');
+        }
     }, [isOpen, itemId, mediaType, userRegion]); // Re-fetch if region changes
 
     // Helper to safely get nested properties
@@ -122,7 +132,7 @@ export function DetailsDialog({ isOpen, onClose, item, onAddToWatchlist, isAdded
     const backdropPath = getNested(details, 'backdrop_path');
     const runtime = getNested(details, 'runtime') || getNested(details, 'episode_run_time.0');
     const genres = getNested(details, 'genres', []);
-
+    const [activeTab, setActiveTab] = useState('overview');
     // Simplify provider access
     const flatProviders = getNested(providers, 'flatrate', []);
     const rentProviders = getNested(providers, 'rent', []);
@@ -151,10 +161,15 @@ export function DetailsDialog({ isOpen, onClose, item, onAddToWatchlist, isAdded
     };
 
     return (
-        <Dialog open={isOpen} onOpenChange={() => {
-            onClose()
-        }}>
-            <DialogContent className="sm:max-w-[700px] max-h-[90vh] p-0 overflow-hidden rounded-xl">
+        <Dialog open={isOpen} onOpenChange={() => onClose()} closeButton={false}>
+            <DialogContent className="sm:max-w-[700px] max-h-[90vh] p-0 overflow-hidden rounded-xl bg-gray-900 border-gray-800">
+                {/* Add a custom close button positioned absolute in the corner */}
+                <DialogClose asChild>
+                    <Button variant="outline" className="absolute top-2 right-2 z-10 p-1.5 rounded-full bg-gray-800/80 hover:bg-gray-700 text-white/70 hover:text-white transition-colors">
+                        <XMarkIcon className=" text-white fill-white" />
+                    </Button>
+                </DialogClose>
+
                 {/* Backdrop image header */}
                 {backdropPath && (
                     <div className="relative w-full h-40 overflow-hidden">
@@ -163,14 +178,14 @@ export function DetailsDialog({ isOpen, onClose, item, onAddToWatchlist, isAdded
                             alt={title}
                             className="w-full h-full object-cover"
                         />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent"></div>
+                        <div className="absolute inset-0 bg-gradient-to-t from-gray-900 via-black/50 to-transparent"></div>
                         <div className="absolute bottom-0 left-0 w-full p-4 text-white">
-                            <Badge className="mb-2 bg-purple-600 hover:bg-purple-700">
+                            <Badge className="mb-2 bg-purple-900 hover:bg-purple-800 text-white">
                                 {mediaType === 'movie' ? <Film className="h-3 w-3 mr-1" /> : <Tv className="h-3 w-3 mr-1" />}
                                 {mediaType === 'movie' ? 'Movie' : 'TV Show'}
                             </Badge>
-                            <h2 className="text-2xl font-bold">{title}</h2>
-                            <div className="flex items-center gap-3 mt-1 text-sm">
+                            <h2 className="text-2xl font-bold text-white">{title}</h2>
+                            <div className="flex items-center gap-3 mt-1 text-sm text-gray-300">
                                 {year && (
                                     <div className="flex items-center">
                                         <Calendar className="h-3.5 w-3.5 mr-1 opacity-70" />
@@ -195,281 +210,181 @@ export function DetailsDialog({ isOpen, onClose, item, onAddToWatchlist, isAdded
                 )}
 
                 <ScrollArea className="max-h-[calc(90vh-13rem)]">
-                    <div className="p-6">
-                        {isLoading && <div className="p-6 text-center">Loading details...</div>}
-                        {error && <div className="p-6 text-center text-red-600 bg-red-100 rounded">Error: {error}</div>}
+                    <div className="p-6 text-white">
+                        {isLoading && <div className="p-6 text-center text-gray-300">Loading details...</div>}
+                        {error && <div className="p-6 text-center text-red-400 bg-red-900/20 rounded">Error: {error}</div>}
 
-                        {!isLoading && !error && details && (
-                            <Tabs defaultValue="overview" className="w-full">
-                                <TabsList className="mb-4">
-                                    <TabsTrigger value="overview">Overview</TabsTrigger>
-                                    {trailers.length > 0 && (
-                                        <TabsTrigger value="trailers">
-                                            <Play className="h-3.5 w-3.5 mr-1.5" />
-                                            Trailers
-                                        </TabsTrigger>
-                                    )}
-                                    <TabsTrigger value="cast">Cast</TabsTrigger>
-                                    <TabsTrigger value="watch">Where to Watch</TabsTrigger>
+                        {!isLoading && !error && (
+                            <Tabs defaultValue="overview" className="w-full" value={activeTab} onValueChange={setActiveTab}>
+                                <TabsList className="w-full bg-gray-800 text-gray-300">
+                                    <TabsTrigger onClick={() => setActiveTab('overview')} value="overview" className="data-[state=active]:bg-gray-700 data-[state=active]:text-white">Overview</TabsTrigger>
+                                    <TabsTrigger onClick={() => setActiveTab('cast')} value="cast" className="data-[state=active]:bg-gray-700 data-[state=active]:text-white">Cast</TabsTrigger>
+                                    <TabsTrigger onClick={() => setActiveTab('watch')} value="watch" className="data-[state=active]:bg-gray-700 data-[state=active]:text-white">Watch</TabsTrigger>
+                                    <TabsTrigger onClick={() => setActiveTab('videos')} value="videos" className="data-[state=active]:bg-gray-700 data-[state=active]:text-white">Videos</TabsTrigger>
                                 </TabsList>
 
-                                <TabsContent value="overview" className="mt-0">
-                                    <div className="flex flex-col sm:flex-row gap-6">
-                                        <div className="w-full sm:w-1/3 flex-shrink-0">
-                                            <img
-                                                src={getImageUrl(posterPath, 'w342') || "/placeholder.svg"}
-                                                alt={title}
-                                                className="w-full h-auto rounded-lg shadow-md"
-                                            />
-
-                                            {/* Add watch trailer button if trailer available */}
-                                            {mainTrailer && (
-                                                <Button
-                                                    className="w-full mt-3 bg-red-600 hover:bg-red-700 flex items-center justify-center gap-1.5"
-                                                    onClick={() => document.querySelector('[data-value="trailers"]')?.click()}
-                                                >
-                                                    <Play className="h-4 w-4" />
-                                                    Watch Trailer
-                                                </Button>
-                                            )}
+                                <TabsContent value="overview" className="mt-6">
+                                    {/* Synopsis */}
+                                    {synopsis && (
+                                        <div className="mb-6">
+                                            <h3 className="text-lg font-semibold mb-2 text-white">Synopsis</h3>
+                                            <p className="text-gray-300">{synopsis}</p>
                                         </div>
-                                        <div className="flex-grow">
-                                            {!backdropPath && (
-                                                <div className="mb-4">
-                                                    <h2 className="text-2xl font-bold">{title}</h2>
-                                                    <div className="flex items-center gap-3 mt-1 text-sm text-gray-600">
-                                                        {year && (
-                                                            <div className="flex items-center">
-                                                                <Calendar className="h-3.5 w-3.5 mr-1 opacity-70" />
-                                                                {year}
-                                                            </div>
-                                                        )}
-                                                        {runtime && (
-                                                            <div className="flex items-center">
-                                                                <Clock className="h-3.5 w-3.5 mr-1 opacity-70" />
-                                                                {formatRuntime(runtime)}
-                                                            </div>
-                                                        )}
-                                                        {rating && (
-                                                            <div className="flex items-center">
-                                                                <Star className="h-3.5 w-3.5 mr-1 fill-yellow-400 text-yellow-400" />
-                                                                {rating}
-                                                            </div>
-                                                        )}
+                                    )}
+
+                                    {/* Genres */}
+                                    {genres.length > 0 && (
+                                        <div className="mb-6">
+                                            <h3 className="text-lg font-semibold mb-2 text-white">Genres</h3>
+                                            <div className="flex flex-wrap gap-2">
+                                                {genres.map(genre => (
+                                                    <Badge key={genre.id} variant="outline" className="border-gray-700 text-gray-300">
+                                                        {genre.name}
+                                                    </Badge>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* trailer button */}
+                                    <Button variant="outline" className="w-full bg-purple-900 hover:bg-purple-800 text-white" onClick={() => {
+                                        // switch to the trailer tab
+                                        setActiveTab('videos');
+                                    }}>
+                                        <Play className="h-4 w-4 mr-2" />
+                                        Watch Trailer
+                                    </Button>
+                                </TabsContent>
+
+                                <TabsContent value="cast" className="mt-6">
+                                    {cast.length > 0 && (
+                                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                                            {cast.map(person => (
+                                                <div key={person.id} className="text-center">
+                                                    <img
+                                                        src={getImageUrl(person.profile_path, 'w185') || "/placeholder.svg"}
+                                                        alt={person.name}
+                                                        className="w-full h-auto rounded-lg mb-2"
+                                                    />
+                                                    <p className="font-medium text-sm text-white">{person.name}</p>
+                                                    <p className="text-xs text-gray-400">{person.character}</p>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </TabsContent>
+
+                                <TabsContent value="watch" className="mt-6">
+                                    {(flatProviders?.length > 0 || rentProviders?.length > 0 || buyProviders?.length > 0) ? (
+                                        <div className="space-y-4">
+                                            {flatProviders?.length > 0 && (
+                                                <div>
+                                                    <h4 className="text-sm font-medium mb-2 text-gray-300">Stream</h4>
+                                                    <div className="flex flex-wrap gap-2">
+                                                        {flatProviders.map(provider => (
+                                                            <img
+                                                                key={provider.provider_id}
+                                                                src={getImageUrl(provider.logo_path, 'w92')}
+                                                                alt={provider.provider_name}
+                                                                title={provider.provider_name}
+                                                                className="w-8 h-8 rounded-lg"
+                                                            />
+                                                        ))}
                                                     </div>
                                                 </div>
                                             )}
 
-                                            {genres.length > 0 && (
-                                                <div className="mb-4 flex flex-wrap gap-2">
-                                                    {genres.map(genre => (
-                                                        <Badge key={genre.id} variant="outline" className="bg-gray-100">
-                                                            {genre.name}
-                                                        </Badge>
-                                                    ))}
+                                            {rentProviders?.length > 0 && (
+                                                <div>
+                                                    <h4 className="text-sm font-medium mb-2 text-gray-300">Rent</h4>
+                                                    <div className="flex flex-wrap gap-2">
+                                                        {rentProviders.map(provider => (
+                                                            <img
+                                                                key={provider.provider_id}
+                                                                src={getImageUrl(provider.logo_path, 'w92')}
+                                                                alt={provider.provider_name}
+                                                                title={provider.provider_name}
+                                                                className="w-8 h-8 rounded-lg"
+                                                            />
+                                                        ))}
+                                                    </div>
                                                 </div>
                                             )}
 
-                                            <h3 className="text-lg font-semibold mb-2">Synopsis</h3>
-                                            <DialogDescription className="text-sm text-gray-700 mb-4">
-                                                {synopsis || 'No synopsis available.'}
-                                            </DialogDescription>
-                                        </div>
-                                    </div>
-                                </TabsContent>
-
-                                {/* New Trailers Tab */}
-                                {trailers.length > 0 && (
-                                    <TabsContent value="trailers" className="mt-0">
-                                        <div className="space-y-4">
-                                            {/* Main trailer (first one) */}
-                                            <div>
-                                                <div className="relative pb-[56.25%] h-0 rounded-lg overflow-hidden">
-                                                    <iframe
-                                                        src={getYoutubeEmbedUrl(mainTrailer.key)}
-                                                        className="absolute top-0 left-0 w-full h-full"
-                                                        frameBorder="0"
-                                                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                                                        allowFullScreen
-                                                        title={`${title} - ${mainTrailer.name}`}
-                                                    ></iframe>
-                                                </div>
-                                                <p className="mt-2 text-sm font-medium">{mainTrailer.name}</p>
-                                            </div>
-
-                                            {/* List of additional trailers */}
-                                            {trailers.length > 1 && (
-                                                <div className="mt-6">
-                                                    <h3 className="text-lg font-medium mb-3">More videos</h3>
-                                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                                        {trailers.slice(1).map(video => (
-                                                            <a
-                                                                key={video.id}
-                                                                href={`https://www.youtube.com/watch?v=${video.key}`}
-                                                                target="_blank"
-                                                                rel="noopener noreferrer"
-                                                                className="flex items-start gap-3 group hover:bg-gray-50 p-2 rounded-lg transition-colors"
-                                                            >
-                                                                <div className="relative w-24 h-14 flex-shrink-0 rounded overflow-hidden bg-gray-100">
-                                                                    <img
-                                                                        src={`https://img.youtube.com/vi/${video.key}/mqdefault.jpg`}
-                                                                        alt={video.name}
-                                                                        className="w-full h-full object-cover"
-                                                                    />
-                                                                    <div className="absolute inset-0 flex items-center justify-center bg-black/30 group-hover:bg-black/40 transition-colors">
-                                                                        <Play className="w-6 h-6 text-white" />
-                                                                    </div>
-                                                                </div>
-                                                                <div>
-                                                                    <p className="text-sm font-medium line-clamp-2 group-hover:text-purple-700">{video.name}</p>
-                                                                    <p className="text-xs text-gray-500">{video.type}</p>
-                                                                </div>
-                                                            </a>
+                                            {buyProviders?.length > 0 && (
+                                                <div>
+                                                    <h4 className="text-sm font-medium mb-2 text-gray-300">Buy</h4>
+                                                    <div className="flex flex-wrap gap-2">
+                                                        {buyProviders.map(provider => (
+                                                            <img
+                                                                key={provider.provider_id}
+                                                                src={getImageUrl(provider.logo_path, 'w92')}
+                                                                alt={provider.provider_name}
+                                                                title={provider.provider_name}
+                                                                className="w-8 h-8 rounded-lg"
+                                                            />
                                                         ))}
                                                     </div>
                                                 </div>
                                             )}
                                         </div>
-                                    </TabsContent>
-                                )}
+                                    ) : (
+                                        <div className="text-center text-gray-400">
+                                            No streaming options available in {regionName}
+                                        </div>
+                                    )}
+                                </TabsContent>
 
-                                <TabsContent value="cast" className="mt-0">
-                                    {cast.length > 0 ? (
-                                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                                            {cast.map(actor => (
-                                                <div key={actor.cast_id || actor.id} className="text-center">
-                                                    <div className="aspect-square rounded-lg overflow-hidden bg-gray-100 mb-2">
-                                                        <img
-                                                            src={actor.profile_path ? getImageUrl(actor.profile_path, 'w185') : '/placeholder.svg?height=185&width=185'}
-                                                            alt={actor.name}
-                                                            className="w-full h-full object-cover"
-                                                        />
-                                                    </div>
-                                                    <p className="font-medium text-sm">{actor.name}</p>
-                                                    <p className="text-xs text-gray-500">{actor.character}</p>
+                                <TabsContent value="videos" className="mt-6">
+                                    {trailers.length > 0 ? (
+                                        <div className="space-y-4">
+                                            {trailers.slice(0, 2).map(trailer => (
+                                                <div key={trailer.key} className="aspect-video">
+                                                    <iframe
+                                                        src={getYoutubeEmbedUrl(trailer.key)}
+                                                        title={trailer.name}
+                                                        className="w-full h-full rounded-lg"
+                                                        allowFullScreen
+                                                    ></iframe>
                                                 </div>
                                             ))}
                                         </div>
                                     ) : (
-                                        <p className="text-gray-500 italic">No cast information available.</p>
-                                    )}
-                                </TabsContent>
-
-                                <TabsContent value="watch" className="mt-0">
-                                    <h3 className="text-lg font-semibold mb-3">Where to Watch ({regionName})</h3>
-
-                                    {(flatProviders.length > 0 || rentProviders.length > 0 || buyProviders.length > 0) ? (
-                                        <div className="space-y-6">
-                                            {flatProviders.length > 0 && (
-                                                <div>
-                                                    <h4 className="text-sm font-medium mb-3 text-gray-600 flex items-center">
-                                                        <Badge className="mr-2 bg-emerald-600">Stream</Badge>
-                                                        Available with subscription
-                                                    </h4>
-                                                    <div className="flex flex-wrap gap-3">
-                                                        {flatProviders.map(p => (
-                                                            <div key={p.provider_id} className="text-center">
-                                                                <div className="w-12 h-12 rounded-lg overflow-hidden shadow-sm border">
-                                                                    <img
-                                                                        src={getImageUrl(p.logo_path, 'w92') || "/placeholder.svg"}
-                                                                        alt={p.provider_name}
-                                                                        title={p.provider_name}
-                                                                        className="w-full h-full object-cover"
-                                                                    />
-                                                                </div>
-                                                                <p className="text-xs mt-1">{p.provider_name}</p>
-                                                            </div>
-                                                        ))}
-                                                    </div>
-                                                </div>
-                                            )}
-
-                                            {rentProviders.length > 0 && (
-                                                <div>
-                                                    <h4 className="text-sm font-medium mb-3 text-gray-600 flex items-center">
-                                                        <Badge className="mr-2 bg-amber-500">Rent</Badge>
-                                                        Available to rent
-                                                    </h4>
-                                                    <div className="flex flex-wrap gap-3">
-                                                        {rentProviders.map(p => (
-                                                            <div key={p.provider_id} className="text-center">
-                                                                <div className="w-12 h-12 rounded-lg overflow-hidden shadow-sm border">
-                                                                    <img
-                                                                        src={getImageUrl(p.logo_path, 'w92') || "/placeholder.svg"}
-                                                                        alt={p.provider_name}
-                                                                        title={p.provider_name}
-                                                                        className="w-full h-full object-cover"
-                                                                    />
-                                                                </div>
-                                                                <p className="text-xs mt-1">{p.provider_name}</p>
-                                                            </div>
-                                                        ))}
-                                                    </div>
-                                                </div>
-                                            )}
-
-                                            {buyProviders.length > 0 && (
-                                                <div>
-                                                    <h4 className="text-sm font-medium mb-3 text-gray-600 flex items-center">
-                                                        <Badge className="mr-2 bg-purple-600">Buy</Badge>
-                                                        Available to purchase
-                                                    </h4>
-                                                    <div className="flex flex-wrap gap-3">
-                                                        {buyProviders.map(p => (
-                                                            <div key={p.provider_id} className="text-center">
-                                                                <div className="w-12 h-12 rounded-lg overflow-hidden shadow-sm border">
-                                                                    <img
-                                                                        src={getImageUrl(p.logo_path, 'w92') || "/placeholder.svg"}
-                                                                        alt={p.provider_name}
-                                                                        title={p.provider_name}
-                                                                        className="w-full h-full object-cover"
-                                                                    />
-                                                                </div>
-                                                                <p className="text-xs mt-1">{p.provider_name}</p>
-                                                            </div>
-                                                        ))}
-                                                    </div>
-                                                </div>
-                                            )}
+                                        <div className="text-center text-gray-400">
+                                            No videos available
                                         </div>
-                                    ) : (
-                                        <p className="text-gray-500 italic">No streaming information available for your region.</p>
                                     )}
                                 </TabsContent>
                             </Tabs>
                         )}
                     </div>
-                </ScrollArea>
-
-                <DialogFooter className="p-4 border-t">
-                    <div className="flex w-full justify-between gap-2">
+                    <DialogFooter className="p-4 bg-gray-900 border-t border-gray-800">
+                        <Button
+                            variant={isAddedToWatchlist ? "default" : "outline"}
+                            onClick={() => onAddToWatchlist(item)}
+                            className={isAddedToWatchlist ? "bg-purple-900 hover:bg-purple-800 text-white" : "bg-gray-600 border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white"}
+                        >
+                            {isAddedToWatchlist ? (
+                                <>
+                                    <Check className="h-4 w-4 mr-2" />
+                                    In Watchlist
+                                </>
+                            ) : (
+                                <>
+                                    <Plus className="h-4 w-4 mr-2" />
+                                    Add to Watchlist
+                                </>
+                            )}
+                        </Button>
                         <DialogClose asChild>
-                            <Button type="button" variant="outline">
+                            <Button variant="ghost" className="text-gray-300 hover:text-white hover:bg-gray-800">
                                 Close
                             </Button>
                         </DialogClose>
-                        {item && (
-                            <Button
-                                onClick={() => !isAddedToWatchlist && onAddToWatchlist(item)}
-                                disabled={isAddedToWatchlist || isLoading}
-                                className={`flex items-center gap-1.5 ${isAddedToWatchlist ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-purple-600 hover:bg-purple-700'}`}
-                                title={isAddedToWatchlist ? 'Already in your watchlist' : 'Add to your watchlist'}
-                            >
-                                {isAddedToWatchlist ? (
-                                    <>
-                                        <Check className="h-4 w-4" />
-                                        <span>In Watchlist</span>
-                                    </>
-                                ) : (
-                                    <>
-                                        <Plus className="h-4 w-4" />
-                                        <span>Add to Watchlist</span>
-                                    </>
-                                )}
-                            </Button>
-                        )}
-                    </div>
-                </DialogFooter>
+                    </DialogFooter>
+                </ScrollArea>
+
+
             </DialogContent>
         </Dialog>
     );
