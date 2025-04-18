@@ -138,6 +138,31 @@ export function DetailsDialog({ isOpen, onClose, item, onAddToWatchlist, isAdded
     const rentProviders = getNested(providers, 'rent', []);
     const buyProviders = getNested(providers, 'buy', []);
 
+    const providersLinks = {
+        'Netflix': 'https://www.netflix.com/',
+        'Amazon Prime Video': 'https://www.amazon.com/gp/video/storefront/',
+        'Disney+': 'https://www.disneyplus.com/',
+        'Disney Plus': 'https://www.disneyplus.com/',
+        'Hulu': 'https://www.hulu.com/',
+        'HBO Max': 'https://www.hbomax.com/',
+        'Apple TV+': 'https://www.apple.com/apple-tv-plus/',
+        'Paramount+': 'https://www.paramountplus.com/',
+        'Shudder': 'https://www.shudder.com/',
+        'Cineplex': 'https://www.cineplex.com/',
+        'AMC+': 'https://www.amcplus.com/',
+        'Peacock': 'https://www.peacocktv.com/',
+        "Max": 'https://www.max.com/',
+        'Youtube': 'https://www.youtube.com/',
+        'Google Play Movies': `https://play.google.com/store/`,
+        'Amazon Video': 'https://www.amazon.com/gp/video/storefront/',
+        'Vudu': 'https://www.vudu.com/',
+        'Redbox': 'https://www.redbox.com/',
+        'FandangoNOW': 'https://www.fandangonow.com/',
+        'YouTube Movies': 'https://www.youtube.com/movies',
+        'iTunes': 'https://www.apple.com/itunes/charts/movies/',
+        'Microsoft Store': 'https://www.microsoft.com/en-us/store/movies-tv',
+    }
+
     // Get trailers and videos
     const trailers = videos?.filter(video =>
         video.site === 'YouTube' &&
@@ -281,15 +306,21 @@ export function DetailsDialog({ isOpen, onClose, item, onAddToWatchlist, isAdded
                                                 <div>
                                                     <h4 className="text-sm font-medium mb-2 text-gray-300">Stream</h4>
                                                     <div className="flex flex-wrap gap-2">
-                                                        {flatProviders.map(provider => (
-                                                            <img
-                                                                key={provider.provider_id}
-                                                                src={getImageUrl(provider.logo_path, 'w92')}
-                                                                alt={provider.provider_name}
-                                                                title={provider.provider_name}
-                                                                className="w-8 h-8 rounded-lg"
-                                                            />
-                                                        ))}
+                                                        {flatProviders.map(provider => {
+                                                            return (
+                                                                <a href={Object.keys(providersLinks).find(key => provider.provider_name.includes(key) || key.includes(provider.provider_name))
+                                                                    ? providersLinks[Object.keys(providersLinks).find(key => provider.provider_name.includes(key) || key.includes(provider.provider_name))]
+                                                                    : '#'} target="_blank" rel="noopener noreferrer">
+                                                                    <img
+                                                                        key={provider.provider_id}
+                                                                        src={getImageUrl(provider.logo_path, 'w92')}
+                                                                        alt={provider.provider_name}
+                                                                        title={provider.provider_name}
+                                                                        className="w-8 h-8 rounded-lg"
+                                                                    />
+                                                                </a>
+                                                            )
+                                                        })}
                                                     </div>
                                                 </div>
                                             )}
@@ -298,15 +329,21 @@ export function DetailsDialog({ isOpen, onClose, item, onAddToWatchlist, isAdded
                                                 <div>
                                                     <h4 className="text-sm font-medium mb-2 text-gray-300">Rent</h4>
                                                     <div className="flex flex-wrap gap-2">
-                                                        {rentProviders.map(provider => (
-                                                            <img
-                                                                key={provider.provider_id}
-                                                                src={getImageUrl(provider.logo_path, 'w92')}
-                                                                alt={provider.provider_name}
-                                                                title={provider.provider_name}
-                                                                className="w-8 h-8 rounded-lg"
-                                                            />
-                                                        ))}
+                                                        {rentProviders.map(provider => {
+                                                            return (
+                                                                <a href={Object.keys(providersLinks).find(key => provider.provider_name.includes(key) || key.includes(provider.provider_name))
+                                                                    ? providersLinks[Object.keys(providersLinks).find(key => provider.provider_name.includes(key) || key.includes(provider.provider_name))]
+                                                                    : '#'} target="_blank" rel="noopener noreferrer">
+                                                                    <img
+                                                                        key={provider.provider_id}
+                                                                        src={getImageUrl(provider.logo_path, 'w92')}
+                                                                        alt={provider.provider_name}
+                                                                        title={provider.provider_name}
+                                                                        className="w-8 h-8 rounded-lg"
+                                                                    />
+                                                                </a>
+                                                            )
+                                                        })}
                                                     </div>
                                                 </div>
                                             )}
@@ -315,15 +352,21 @@ export function DetailsDialog({ isOpen, onClose, item, onAddToWatchlist, isAdded
                                                 <div>
                                                     <h4 className="text-sm font-medium mb-2 text-gray-300">Buy</h4>
                                                     <div className="flex flex-wrap gap-2">
-                                                        {buyProviders.map(provider => (
-                                                            <img
-                                                                key={provider.provider_id}
-                                                                src={getImageUrl(provider.logo_path, 'w92')}
-                                                                alt={provider.provider_name}
-                                                                title={provider.provider_name}
-                                                                className="w-8 h-8 rounded-lg"
-                                                            />
-                                                        ))}
+                                                        {buyProviders.map(provider => {
+                                                            return (
+                                                                <a href={Object.keys(providersLinks).find(key => provider.provider_name.includes(key) || key.includes(provider.provider_name))
+                                                                    ? providersLinks[Object.keys(providersLinks).find(key => provider.provider_name.includes(key) || key.includes(provider.provider_name))]
+                                                                    : '#'} target="_blank" rel="noopener noreferrer">
+                                                                    <img
+                                                                        key={provider.provider_id}
+                                                                        src={getImageUrl(provider.logo_path, 'w92')}
+                                                                        alt={provider.provider_name}
+                                                                        title={provider.provider_name}
+                                                                        className="w-8 h-8 rounded-lg"
+                                                                    />
+                                                                </a>
+                                                            )
+                                                        })}
                                                     </div>
                                                 </div>
                                             )}

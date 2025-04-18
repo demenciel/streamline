@@ -1,10 +1,7 @@
-"use client"
-
 import React, { useState, useEffect, useCallback } from 'react'
 import { Head } from '@inertiajs/react'
 import axios from 'axios'
 import { debounce } from 'lodash'
-import { Play } from 'lucide-react'
 
 // Import shadcn components
 import { Button } from "@/components/ui/button"
@@ -327,7 +324,7 @@ export default function Home(props) {
 
     // Generic filter change handler
     const handleFilterChange = () => {
-        const currentFilters = {
+         const currentFilters = {
             with_genres: selectedGenre,
             yearRange: yearRange,
             minRating: minRating,
@@ -531,7 +528,7 @@ export default function Home(props) {
             params.watch_region = userRegion
             params.region = userRegion
         }
-
+        
         // Q5: Audience
         if (answers.audience === 'date' && !params.with_genres?.includes('10749')) {
             params.with_genres = params.with_genres ? `${params.with_genres},10749` : '10749'
@@ -559,7 +556,7 @@ export default function Home(props) {
                             ...prev,
                             [cacheKey]: [...prev[cacheKey], ...newResults]
                         }
-                    } else {
+            } else {
                         return {
                             ...prev,
                             [cacheKey]: results
@@ -629,9 +626,9 @@ export default function Home(props) {
     // Update fetchAnotherRecommendation to fetch new pages when needed
     const fetchAnotherRecommendation = () => {
         // Increment the page counter to ensure we get different results next time
-        setCurrentQuizPage(prev => prev + 1)
+        /* setCurrentQuizPage(prev => prev + 1)
 
-        const cacheKey = JSON.stringify(quizAnswers)
+        const cacheKey = JSON.stringify(quizAnswers) */
         findQuizRecommendation()
 
         // If we have cached results, we can immediately get another recommendation
@@ -685,39 +682,14 @@ export default function Home(props) {
 
     return (
         <>
-            <Head>
-                <title>Vibeflix | End Netflix Doom Scrolling with Random Picks</title>
-                <meta name="description" content="Stop wasting time scrolling through Netflix. Vibeflix helps you discover movies and shows you'll love with just a few clicks using our 'Random Recommendation' feature." />
-                
-                {/* Open Graph / Facebook */}
-                <meta property="og:type" content="website" />
-                <meta property="og:url" content="https://vibeflix.com/" />
-                <meta property="og:title" content="Vibeflix | Random Movie & TV Recommendations" />
-                <meta property="og:description" content="End streaming decision paralysis. Get personalized movie and TV show recommendations with a few clicks." />
-                <meta property="og:image" content="/images/vibeflix-social-share.jpg" />
-                
-                {/* Twitter */}
-                <meta property="twitter:card" content="summary_large_image" />
-                <meta property="twitter:url" content="https://vibeflix.com/" />
-                <meta property="twitter:title" content="Vibeflix | End Netflix Doom Scrolling" />
-                <meta property="twitter:description" content="Get instant movie and TV recommendations. No more endless scrolling." />
-                <meta property="twitter:image" content="/images/vibeflix-social-share.jpg" />
-                
-                {/* Keywords */}
-                <meta name="keywords" content="movie recommendation, tv show recommendation, what to watch, random movie picker, netflix alternative, streaming recommendations, end doom scrolling" />
-                
-                {/* Canonical URL */}
-                <link rel="canonical" href="https://vibeflix.com/" />
-                
-                {/* Favicon */}
-                <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
-                <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
-                <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
-                
-                {/* Additional Meta Tags */}
-                <meta name="viewport" content="width=device-width, initial-scale=1" />
-                <meta name="theme-color" content="#111827" /> {/* Matches your bg-gray-900 background color */}
-            </Head>
+            <Head
+                title="Vibeflix | End Netflix Doom Scrolling with Random Picks"
+                description="Stop wasting time scrolling through Netflix. Vibeflix helps you discover movies and shows you'll love with just a few clicks using our 'Random Recommendation' feature."
+                ogTitle="Vibeflix | Random Movie & TV Recommendations"
+                ogDescription="End streaming decision paralysis. Get personalized movie and TV show recommendations with a few clicks."
+                ogImage="/images/vibeflix-social-share.jpg"
+            />
+
             <div className="min-h-screen w-full bg-gray-900 text-white">
                 <div className="container mx-auto px-2 sm:px-4 py-4 sm:py-8 max-w-full overflow-x-hidden">
                     {/* Header Section - Improve mobile spacing */}
@@ -746,17 +718,17 @@ export default function Home(props) {
                         {/* Improve search input responsive layout */}
                         {searchActive && (
                             <div className="relative w-full mt-4">
-                                <Input
-                                    type="text"
+                            <Input
+                                type="text"
                                     placeholder="Search movies and TV shows..."
-                                    value={searchQuery}
-                                    onChange={handleInputChange}
+                                value={searchQuery}
+                                onChange={handleInputChange}
                                     className="w-full pl-10 bg-gray-900 border-gray-800 text-white placeholder:text-gray-400"
-                                />
+                            />
                                 <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
-                            </div>
+                        </div>
                         )}
-                    </div>
+                        </div>
 
                     {/* "I'm Feeling Lucky" Result Card */}
                     {showQuizResultCard && quizRecommendation && !quizActive && (
@@ -778,10 +750,10 @@ export default function Home(props) {
                                             // Update the featured recommendation when a different item is selected
                                             setQuizRecommendation(item);
                                         }}
-                                    />
-                                </div>
-                            )}
+                            />
                         </div>
+                            )}
+                                            </div>
                     )}
 
                     {/* Results Section */}
@@ -789,7 +761,7 @@ export default function Home(props) {
                         <div className="text-center py-12">
                             <ArrowPathIcon className="h-8 w-8 animate-spin mx-auto text-purple-500" />
                             <p className="mt-2 text-gray-400">Loading...</p>
-                        </div>
+                                    </div>
                     ) : error ? (
                         <div className="text-center py-12 text-red-400 bg-red-900/20 rounded-lg">
                             <p>{error}</p>
@@ -828,7 +800,7 @@ export default function Home(props) {
                                         <CheckIcon className="h-4 w-4 sm:h-5 sm:w-5 text-purple-400" />
                                         <h2 className="text-base sm:text-xl font-semibold">My Watchlist</h2>
                                         <Badge variant="secondary" className="ml-auto bg-gray-700 text-gray-300">{watchlist.length}</Badge>
-                                    </div>
+                        </div>
                                 </AccordionTrigger>
                                 <AccordionContent className="px-3 sm:px-6 pb-4 sm:pb-6 pt-0">
                                     {watchlist.length > 0 ? (
@@ -954,8 +926,8 @@ export default function Home(props) {
                                             </h3>
                                             {QUIZ_QUESTIONS[currentQuestionIndex].type === 'radio' ? (
                                                 <ScrollArea className="h-[350px] pr-2">
-                                                    <RadioGroup
-                                                        value={quizAnswers[QUIZ_QUESTIONS[currentQuestionIndex].key] || ''}
+                                <RadioGroup 
+                                    value={quizAnswers[QUIZ_QUESTIONS[currentQuestionIndex].key] || ''} 
                                                         onValueChange={(value) =>
                                                             handleQuizAnswer(QUIZ_QUESTIONS[currentQuestionIndex].key, value)
                                                         }
@@ -983,9 +955,9 @@ export default function Home(props) {
                                                                 >
                                                                     {option.label}
                                                                 </Label>
-                                                            </div>
-                                                        ))}
-                                                    </RadioGroup>
+                                        </div>
+                                    ))}
+                                </RadioGroup>
                                                     <ScrollBar orientation="vertical" />
                                                 </ScrollArea>
                                             ) : (
@@ -1017,16 +989,16 @@ export default function Home(props) {
                                                             ) : null} */}
                                                             <Label className="text-sm text-center block text-gray-300">
                                                                 {option.label}
-                                                            </Label>
+                                             </Label>
                                                             {(quizAnswers[QUIZ_QUESTIONS[currentQuestionIndex].key] || []).includes(option.value) && (
                                                                 <div className="absolute -top-2 -right-2 bg-purple-500 rounded-full p-0.5">
                                                                     <CheckIcon className="h-3 w-3 text-white" />
                                                                 </div>
                                                             )}
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
                                         </div>
                                         <DialogFooter>
                                             <Button
@@ -1035,18 +1007,18 @@ export default function Home(props) {
                                                 className="w-full bg-purple-900 hover:bg-purple-800 text-white disabled:bg-gray-700"
                                             >
                                                 {currentQuestionIndex === QUIZ_QUESTIONS.length - 1 ? "Find Matches" : "Next"}
-                                            </Button>
+                            </Button>
                                         </DialogFooter>
-                                    </div>
-                                )}
+                        </div>
+                    )}
                             </DialogContent>
                         </Dialog>
                     )}
 
-                    {/* Details Dialog */}
-                    <DetailsDialog
-                        isOpen={isDetailsOpen}
-                        onClose={handleCloseDetails}
+                {/* Details Dialog */}
+                <DetailsDialog
+                    isOpen={isDetailsOpen}
+                    onClose={handleCloseDetails}
                         item={selectedItemDetails}
                         onAddToWatchlist={addToWatchlist}
                         isAddedToWatchlist={
