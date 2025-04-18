@@ -18,6 +18,35 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { XMarkIcon } from '@heroicons/react/24/outline';
 
+const StreamButtonIcon = ({ flatProviders, rentProviders, buyProviders }) => {
+    /* if (flatProviders?.length > 0) {
+        return (
+            <img
+                className="h-4 w-4 mr-2"
+                src={getImageUrl(flatProviders[0].logo_path, 'w92')}
+                alt={flatProviders[0].provider_name}
+            />
+        );
+    } else if (rentProviders?.length > 0) {
+        return (
+            <img
+                className="h-4 w-4 mr-2"
+                src={getImageUrl(rentProviders[0].logo_path, 'w92')}
+                alt={rentProviders[0].provider_name}
+            />
+        );
+    } else if (buyProviders?.length > 0) {
+        return (
+            <img
+                className="h-4 w-4 mr-2"
+                src={getImageUrl(buyProviders[0].logo_path, 'w92')}
+                alt={buyProviders[0].provider_name}
+            />
+        );
+    } else { */
+    return <Play className="h-4 w-4 mr-2" />;
+};
+
 // Utility function (can be moved)
 const getImageUrl = (path, size = "w500") => {
     if (!path) return 'https://via.placeholder.com/500x750?text=No+Image';
@@ -163,6 +192,74 @@ export function DetailsDialog({ isOpen, onClose, item, onAddToWatchlist, isAdded
         'Microsoft Store': 'https://www.microsoft.com/en-us/store/movies-tv',
     }
 
+    const getProviderColors = (providers) => {
+        if (providers?.length === 0) {
+            return 'bg-transparent'
+        }
+        const providerName = providers[0]?.provider_name
+        const colors = {
+            'Netflix': 'bg-red-600',
+            'Amazon Prime Video': 'bg-[#00A8E1]', // Amazon blue
+            'Amazon Video': 'bg-[#00A8E1]',
+            'Disney+': 'bg-[#113CCF]',
+            'Disney Plus': 'bg-[#113CCF]',
+            'Hulu': 'bg-green-500',
+            'HBO Max': 'bg-purple-700',
+            'Max': 'bg-purple-700',
+            'Apple TV+': 'bg-neutral-800', // grayscale
+            'Paramount+': 'bg-blue-500',
+            'Shudder': 'bg-red-700',
+            'Cineplex': 'bg-yellow-400',
+            'AMC+': 'bg-red-500',
+            'Peacock': 'bg-black',
+            'Youtube': 'bg-red-500',
+            'YouTube Movies': 'bg-red-500',
+            'Google Play Movies': 'bg-[#34A853]', // Google green
+            'Vudu': 'bg-blue-500',
+            'Redbox': 'bg-red-700',
+            'FandangoNOW': 'bg-orange-500',
+            'iTunes': 'bg-pink-500',
+            'Microsoft Store': 'bg-blue-700',
+            'Crunchyroll': 'bg-orange-500',
+        }
+        const providerColor = Object.keys(colors).find(key => providerName.includes(key) || key.includes(providerName)) || 'bg-gray-700'
+        return colors[providerColor] || 'bg-gray-700'
+    }
+    const getProviderColorsHover = (providers) => {
+        if (providers?.length === 0) {
+            return 'bg-transparent'
+        }
+        const providerName = providers[0]?.provider_name
+        const colors = {
+            'Netflix': 'hover:bg-red-800',
+            'Amazon Prime Video': 'hover:bg-[#00A8E1]', // Amazon blue
+            'Amazon Video': 'hover:bg-[#00A8E1]',
+            'Disney+': 'hover:bg-[#113CCF]',
+            'Disney Plus': 'hover:bg-[#113CCF]',
+            'Hulu': 'hover:bg-green-600',
+            'HBO Max': 'hover:bg-purple-800',
+            'Max': 'hover:bg-purple-800',
+            'Apple TV+': 'hover:bg-neutral-800', // grayscale
+            'Paramount+': 'hover:bg-blue-600',
+            'Shudder': 'hover:bg-red-800',
+            'Cineplex': 'hover:bg-yellow-400',
+            'AMC+': 'hover:bg-red-600',
+            'Peacock': 'hover:bg-black',
+            'Youtube': 'hover:bg-red-600',
+            'YouTube Movies': 'hover:bg-red-600',
+            'Google Play Movies': 'hover:bg-[#34A853]', // Google green
+            'Vudu': 'hover:bg-blue-600',
+            'Redbox': 'hover:bg-red-800',
+            'FandangoNOW': 'hover:bg-orange-600',
+            'iTunes': 'hover:bg-pink-600',
+            'Microsoft Store': 'hover:bg-blue-800',
+            'Crunchyroll': 'hover:bg-orange-600',
+        }
+        const providerColor = Object.keys(colors).find(key => providerName.includes(key) || key.includes(providerName)) || 'bg-gray-700'
+        return colors[providerColor] || 'bg-gray-700'
+    }
+
+
     // Get trailers and videos
     const trailers = videos?.filter(video =>
         video.site === 'YouTube' &&
@@ -184,6 +281,36 @@ export function DetailsDialog({ isOpen, onClose, item, onAddToWatchlist, isAdded
     const getYoutubeEmbedUrl = (key) => {
         return `https://www.youtube.com/embed/${key}?autoplay=0&rel=0`;
     };
+
+    const watchButtonText = (flatProviders, rentProviders, buyProviders) => {
+        if (flatProviders?.length > 0) {
+            return `Watch on ${flatProviders[0].provider_name}`;
+        } else if (rentProviders?.length > 0) {
+            return `Rent on ${rentProviders[0].provider_name}`;
+        } else if (buyProviders?.length > 0) {
+            return `Buy on ${buyProviders[0].provider_name}`;
+        } else {
+            return 'Unavailable in your region';
+        }
+    }
+
+    const getLinkToWatch = (flatProviders, rentProviders, buyProviders) => {
+        let providerLink = '#';
+        if (flatProviders?.length > 0) {
+            providerLink = Object.keys(providersLinks).find(key => flatProviders[0].provider_name.includes(key) || key.includes(flatProviders[0].provider_name))
+                ? providersLinks[Object.keys(providersLinks).find(key => flatProviders[0].provider_name.includes(key) || key.includes(flatProviders[0].provider_name))]
+                : '#'
+        } else if (rentProviders?.length > 0) {
+            providerLink = Object.keys(providersLinks).find(key => rentProviders[0].provider_name.includes(key) || key.includes(rentProviders[0].provider_name))
+                ? providersLinks[Object.keys(providersLinks).find(key => rentProviders[0].provider_name.includes(key) || key.includes(rentProviders[0].provider_name))]
+                : '#'
+        } else if (buyProviders?.length > 0) {
+            providerLink = Object.keys(providersLinks).find(key => buyProviders[0].provider_name.includes(key) || key.includes(buyProviders[0].provider_name))
+                ? providersLinks[Object.keys(providersLinks).find(key => buyProviders[0].provider_name.includes(key) || key.includes(buyProviders[0].provider_name))]
+                : '#'
+        }
+        return providerLink;
+    }
 
     return (
         <Dialog open={isOpen} onOpenChange={() => onClose()} closeButton={false}>
@@ -271,14 +398,32 @@ export function DetailsDialog({ isOpen, onClose, item, onAddToWatchlist, isAdded
                                         </div>
                                     )}
 
-                                    {/* trailer button */}
-                                    <Button variant="outline" className="w-full bg-purple-900 hover:bg-purple-800 text-white" onClick={() => {
-                                        // switch to the trailer tab
-                                        setActiveTab('videos');
-                                    }}>
-                                        <Play className="h-4 w-4 mr-2" />
-                                        Watch Trailer
-                                    </Button>
+                                    <div className="flex flex-col md:flex-row gap-2">
+                                        {/* trailer button */}
+                                        <Button variant="outline"
+                                            className={`w-full border bg-transparent border-purple-900 ${flatProviders?.length === 0 && rentProviders?.length === 0 && buyProviders?.length === 0 ? 'bg-purple-800' : 'bg-transparent'} hover:bg-purple-800 text-white`}
+                                            onClick={() => {
+                                                setActiveTab('videos');
+                                            }}>
+                                            <Play className="h-4 w-4 mr-2" />
+                                            Watch Trailer
+                                        </Button>
+                                        {/*  */}
+                                        <Button variant="outline"
+                                            className={`w-full ${flatProviders?.length === 0 && rentProviders?.length === 0 && buyProviders?.length === 0 ? 'bg-transparent' : `${getProviderColors(flatProviders)}`} hover:${getProviderColors(flatProviders)} text-white border-0`}
+                                            disabled={flatProviders?.length === 0 && rentProviders?.length === 0 && buyProviders?.length === 0}
+                                            onClick={(e) => {
+                                                e.preventDefault();
+                                                if (flatProviders?.length > 0 || rentProviders?.length > 0 || buyProviders?.length > 0) {
+                                                    const link = getLinkToWatch(flatProviders, rentProviders, buyProviders)
+                                                    console.log(link);
+                                                    window.open(link, '_blank');
+                                                }
+                                            }}>
+                                            <StreamButtonIcon flatProviders={flatProviders} rentProviders={rentProviders} buyProviders={buyProviders} />
+                                            {watchButtonText(flatProviders, rentProviders, buyProviders)}
+                                        </Button>
+                                    </div>
                                 </TabsContent>
 
                                 <TabsContent value="cast" className="mt-6">

@@ -275,12 +275,18 @@ export function MediaCarousel({
                                     {/* Poster image */}
                                     <div className="relative w-full h-full">
                                         {!isActive && (
-                                            <img
-                                                src={getImageUrl(item.backdrop_path || item.poster_path, "w780")}
-                                                alt={itemTitle}
-                                                className="w-full h-full object-cover"
-                                                loading="lazy"
-                                            />
+                                            <>
+                                                <p className="absolute top-0 left-0 text-white text-xs bg-black/50 px-2 py-1">
+                                                    {itemTitle}
+                                                </p>
+                                                
+                                                <img
+                                                    src={getImageUrl(item.backdrop_path || item.poster_path, "w780")}
+                                                    alt={itemTitle}
+                                                    className="w-full h-full object-cover"
+                                                    loading="lazy"
+                                                />
+                                            </>
                                         )}
 
                                         {/* Active card (hover or touch) */}

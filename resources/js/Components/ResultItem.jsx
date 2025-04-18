@@ -82,10 +82,9 @@ export function ResultItem({ item, onAddToWatchlist, onShowDetails, isAddedToWat
                         "w-full text-xs flex items-center justify-center gap-1.5 transition-all duration-300",
                         isAddedToWatchlist 
                             ? "bg-purple-900 hover:bg-purple-800 text-white" 
-                            : "border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white"
+                            : "border-gray-700 bg-transparent text-gray-300 hover:bg-gray-800 hover:text-white"
                     )}
-                    onClick={() => !isAddedToWatchlist && onAddToWatchlist(item)}
-                    disabled={isAddedToWatchlist}
+                    onClick={() => onAddToWatchlist(item)}
                     title={isAddedToWatchlist ? 'Already in your watchlist' : 'Add to your watchlist'}
                 >
                     {isAddedToWatchlist ? (

@@ -160,6 +160,10 @@ export default function Home(props) {
         return saved ? JSON.parse(saved) : []
     })
 
+    // New state variables for better transitions
+    const [direction, setDirection] = useState('right')
+    const [isAnimating, setIsAnimating] = useState(false)
+
     // Save watchlist to localStorage when it changes
     useEffect(() => {
         localStorage.setItem('watchlist', JSON.stringify(watchlist))
@@ -324,7 +328,7 @@ export default function Home(props) {
 
     // Generic filter change handler
     const handleFilterChange = () => {
-         const currentFilters = {
+        const currentFilters = {
             with_genres: selectedGenre,
             yearRange: yearRange,
             minRating: minRating,
@@ -383,12 +387,10 @@ export default function Home(props) {
         const alreadyExists = watchlist.some(w => w.id === watchlistItem.id && w.media_type === watchlistItem.media_type)
 
         if (!alreadyExists) {
-            console.log('Adding to watchlist:', watchlistItem)
             setWatchlist(prev => [...prev, watchlistItem])
         } else {
             // remove from watchlist
             setWatchlist(watchlist.filter(w => !(w.id === watchlistItem.id && w.media_type === watchlistItem.media_type)))
-            console.log('Item already in watchlist:', watchlistItem)
         }
     }
 
@@ -415,9 +417,25 @@ export default function Home(props) {
 
     const goToNextQuestion = () => {
         if (currentQuestionIndex < QUIZ_QUESTIONS.length - 1) {
-            setCurrentQuestionIndex(prev => prev + 1)
+            setDirection('right')
+            setIsAnimating(true)
+            setTimeout(() => {
+                setCurrentQuestionIndex(prev => prev + 1)
+                setIsAnimating(false)
+            }, 300)
         } else {
             findQuizRecommendation()
+        }
+    }
+
+    const goToPreviousQuestion = () => {
+        if (currentQuestionIndex > 0) {
+            setDirection('left')
+            setIsAnimating(true)
+            setTimeout(() => {
+                setCurrentQuestionIndex(prev => prev - 1)
+                setIsAnimating(false)
+            }, 300)
         }
     }
 
@@ -528,7 +546,7 @@ export default function Home(props) {
             params.watch_region = userRegion
             params.region = userRegion
         }
-        
+
         // Q5: Audience
         if (answers.audience === 'date' && !params.with_genres?.includes('10749')) {
             params.with_genres = params.with_genres ? `${params.with_genres},10749` : '10749'
@@ -556,7 +574,7 @@ export default function Home(props) {
                             ...prev,
                             [cacheKey]: [...prev[cacheKey], ...newResults]
                         }
-            } else {
+                    } else {
                         return {
                             ...prev,
                             [cacheKey]: results
@@ -680,22 +698,112 @@ export default function Home(props) {
         setQuizRecommendation(null)
     }
 
+    // Add this function near the other quiz handlers
+    const skipToRandom = async () => {
+        setQuizLoading(true)
+        setQuizError(null)
+        setIsLoading(true)
+        setShowQuizResultCard(false)
+
+        // 1. Pick movie or TV and a random page
+        const mediaType = Math.random() > 0.5 ? 'movie' : 'tv'
+        const randomPage = Math.floor(Math.random() * 5) + 1
+
+        try {
+            // 2. Discover popular titles in your region
+            const params = {
+                sort_by: 'popularity.desc',
+                'vote_count.gte': 150,
+                page: randomPage,
+                region: userRegion,
+                watch_region: userRegion,
+                // optionally let TMDB filter some of this for you:
+                // with_watch_monetization_types: 'flatrate',
+            }
+            const { data: { results = [] } } = await axios.get(
+                `/api/tmdb/discover/${mediaType}`,
+                { params }
+            )
+            if (!results.length) {
+                throw new Error("No titles found on this page.")
+            }
+
+            // 3. Filter out only those actually available to stream/buy/rent/etc.
+            const available = await filterByWatchProviders(results)
+            if (!available.length) {
+                throw new Error("Couldn't find any watchable titles in your region.")
+            }
+
+            // 4. Pick one at random and show it
+            const selected = available[Math.floor(Math.random() * available.length)]
+            setQuizRecommendations(available)
+            setPreviousRecommendations(prev => [...prev, selected])
+            setQuizRecommendation(selected)
+            setShowQuizResultCard(true)
+
+        } catch (err) {
+            setQuizError(err.message)
+        } finally {
+            setQuizLoading(false)
+            setIsLoading(false)
+        }
+    }
+
+
+    const filterByWatchProviders = async (results) => {
+        // fire off all provider lookups in parallel
+        const checks = results.map(async (item) => {
+            const mediaType = item.media_type || (item.title ? 'movie' : 'tv')
+            try {
+                const { data: { results: providers } } = await axios.get(
+                    `/api/tmdb/${mediaType}/${item.id}/watch/providers`,
+                    { params: { region: userRegion } }
+                )
+                // TMDB returns an object keyed by region codes
+                const regionData = providers[userRegion] || {}
+                // check any of these monetization arrays
+                const hasProvider = ['flatrate', 'rent', 'buy', 'ads', 'free']
+                    .some(key => Array.isArray(regionData[key]) && regionData[key].length > 0)
+
+                if (hasProvider) return item
+            } catch (err) {
+                console.warn(`Providers lookup failed for ${mediaType}/${item.id}`, err)
+            }
+            return null
+        })
+
+        // wait for all lookups, then drop any nulls
+        const settled = await Promise.all(checks)
+        return settled.filter(Boolean)
+    }
+
+
     return (
         <>
             <Head
-                title="Vibeflix | End Netflix Doom Scrolling with Random Picks"
-                description="Stop wasting time scrolling through Netflix. Vibeflix helps you discover movies and shows you'll love with just a few clicks using our 'Random Recommendation' feature."
-                ogTitle="Vibeflix | Random Movie & TV Recommendations"
-                ogDescription="End streaming decision paralysis. Get personalized movie and TV show recommendations with a few clicks."
+                title="Vibeflix | Tired of Scrolling? Let Your Mood Pick the Movie"
+                description="No more endless scrolling on Netflix. Vibeflix gives you a personalized pick based on your mood — instantly."
+                ogTitle="Vibeflix | Your Mood. Your Movie."
+                ogDescription="Feeling indecisive? Vibeflix recommends the perfect movie or show in seconds based on your vibe."
                 ogImage="/images/vibeflix-social-share.jpg"
             />
+
 
             <div className="min-h-screen w-full bg-gray-900 text-white">
                 <div className="container mx-auto px-2 sm:px-4 py-4 sm:py-8 max-w-full overflow-x-hidden">
                     {/* Header Section - Improve mobile spacing */}
                     <div className="w-full flex flex-col items-center justify-between gap-3 mb-6">
-                        <h1 className="text-xl sm:text-2xl font-bold mb-2 sm:mb-4 text-center">Welcome to Vibeflix <span className="text-gray-400 text-xs sm:text-sm">({userRegion})</span></h1>
-                        <h3 className="text-gray-400 mb-2 sm:mb-4 text-center text-sm sm:text-base">Get recommendations for movies and TV shows based on your mood.</h3>
+                        {/* Header Section */}
+                        <div className="w-full flex flex-col items-center justify-between gap-3 mb-6 text-center">
+                            <h1 className="text-3xl sm:text-4xl font-bold">
+                                Vibeflix<span className="text-purple-500">.</span>
+                            </h1>
+                            <p className="text-gray-400 text-sm sm:text-base max-w-lg">
+                                No more doom scrolling <span className="text-white font-semibold">Netflix</span> or <span className="text-white font-semibold">Prime</span>.
+                                Let your <span className="text-purple-400 font-medium">mood</span> choose what to watch.
+                            </p>
+                            <span className="text-gray-500 text-xs sm:text-sm mt-1">Currently browsing from {userRegion}</span>
+                        </div>
 
                         {/* Make buttons stack better on mobile */}
                         <div className='flex flex-col sm:flex-row items-center justify-between gap-3 mt-4 sm:mt-8 w-full'>
@@ -704,7 +812,14 @@ export default function Home(props) {
                                 className="w-full h-10 sm:h-12 bg-purple-900 hover:bg-purple-800 text-white"
                             >
                                 <SparklesIcon className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
-                                Random Recommendation
+                                Personalized Recommendation
+                            </Button>
+                            <Button
+                                onClick={skipToRandom}
+                                className="w-full h-10 sm:h-12 bg-indigo-800 hover:bg-indigo-700 text-white"
+                            >
+                                <ArrowPathIcon className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
+                                Skip to Random
                             </Button>
                             <Button
                                 onClick={() => setSearchActive(!searchActive)}
@@ -718,17 +833,17 @@ export default function Home(props) {
                         {/* Improve search input responsive layout */}
                         {searchActive && (
                             <div className="relative w-full mt-4">
-                            <Input
-                                type="text"
+                                <Input
+                                    type="text"
                                     placeholder="Search movies and TV shows..."
-                                value={searchQuery}
-                                onChange={handleInputChange}
+                                    value={searchQuery}
+                                    onChange={handleInputChange}
                                     className="w-full pl-10 bg-gray-900 border-gray-800 text-white placeholder:text-gray-400"
-                            />
+                                />
                                 <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
-                        </div>
+                            </div>
                         )}
-                        </div>
+                    </div>
 
                     {/* "I'm Feeling Lucky" Result Card */}
                     {showQuizResultCard && quizRecommendation && !quizActive && (
@@ -750,10 +865,10 @@ export default function Home(props) {
                                             // Update the featured recommendation when a different item is selected
                                             setQuizRecommendation(item);
                                         }}
-                            />
-                        </div>
+                                    />
+                                </div>
                             )}
-                                            </div>
+                        </div>
                     )}
 
                     {/* Results Section */}
@@ -761,7 +876,7 @@ export default function Home(props) {
                         <div className="text-center py-12">
                             <ArrowPathIcon className="h-8 w-8 animate-spin mx-auto text-purple-500" />
                             <p className="mt-2 text-gray-400">Loading...</p>
-                                    </div>
+                        </div>
                     ) : error ? (
                         <div className="text-center py-12 text-red-400 bg-red-900/20 rounded-lg">
                             <p>{error}</p>
@@ -800,7 +915,7 @@ export default function Home(props) {
                                         <CheckIcon className="h-4 w-4 sm:h-5 sm:w-5 text-purple-400" />
                                         <h2 className="text-base sm:text-xl font-semibold">My Watchlist</h2>
                                         <Badge variant="secondary" className="ml-auto bg-gray-700 text-gray-300">{watchlist.length}</Badge>
-                        </div>
+                                    </div>
                                 </AccordionTrigger>
                                 <AccordionContent className="px-3 sm:px-6 pb-4 sm:pb-6 pt-0">
                                     {watchlist.length > 0 ? (
@@ -921,104 +1036,130 @@ export default function Home(props) {
                                 ) : (
                                     <div>
                                         <div className="py-4">
-                                            <h3 className="text-lg font-medium mb-4 text-white">
-                                                {QUIZ_QUESTIONS[currentQuestionIndex].question}
-                                            </h3>
-                                            {QUIZ_QUESTIONS[currentQuestionIndex].type === 'radio' ? (
-                                                <ScrollArea className="h-[350px] pr-2">
-                                <RadioGroup 
-                                    value={quizAnswers[QUIZ_QUESTIONS[currentQuestionIndex].key] || ''} 
-                                                        onValueChange={(value) =>
-                                                            handleQuizAnswer(QUIZ_QUESTIONS[currentQuestionIndex].key, value)
-                                                        }
-                                                        className="space-y-2"
-                                                    >
-                                                        {QUIZ_QUESTIONS[currentQuestionIndex].options.map(option => (
-                                                            <div
-                                                                key={option.value}
-                                                                className={`
-                                                                    flex items-center space-x-2 rounded-lg border p-4 cursor-pointer transition-colors
-                                                                    ${quizAnswers[QUIZ_QUESTIONS[currentQuestionIndex].key] === option.value
-                                                                        ? 'bg-purple-900/20 border-purple-500'
-                                                                        : 'bg-gray-800 border-gray-700 hover:border-gray-600'
+                                            {!quizRecommendation && (
+                                                <div className="w-full bg-gray-800 h-1 rounded mb-4">
+                                                    <div
+                                                        className="bg-purple-500 h-full transition-all ease-in-out duration-500"
+                                                        style={{ width: `${((currentQuestionIndex + 1) / QUIZ_QUESTIONS.length) * 100}%` }}
+                                                    />
+                                                </div>
+                                            )}
+                                            <div className="relative overflow-hidden">
+                                                <div className={`transition-all duration-300 ease-in-out ${isAnimating ?
+                                                    (direction === 'right' ? 'translate-x-[-100%] opacity-0' : 'translate-x-[100%] opacity-0') :
+                                                    'translate-x-0 opacity-100'}`}>
+                                                    <h3 className="text-lg font-medium mb-4 text-white">
+                                                        {QUIZ_QUESTIONS[currentQuestionIndex].question}
+                                                    </h3>
+                                                    {QUIZ_QUESTIONS[currentQuestionIndex].type === 'radio' ? (
+                                                        <ScrollArea className="h-[350px] pr-2">
+                                                            <RadioGroup
+                                                                value={quizAnswers[QUIZ_QUESTIONS[currentQuestionIndex].key] || ''}
+                                                                onValueChange={(value) => {
+                                                                    handleQuizAnswer(QUIZ_QUESTIONS[currentQuestionIndex].key, value)
+                                                                    if (currentQuestionIndex < QUIZ_QUESTIONS.length - 1) {
+                                                                        setTimeout(() => {
+                                                                            goToNextQuestion()
+                                                                        }, 700) // Slightly longer delay for better UX
                                                                     }
-                                                                `}
+                                                                }}
+                                                                className="space-y-2"
                                                             >
-                                                                <RadioGroupItem
-                                                                    value={option.value}
-                                                                    id={option.value}
-                                                                    className="text-purple-500"
-                                                                />
-                                                                <Label
-                                                                    htmlFor={option.value}
-                                                                    className="flex-1 cursor-pointer text-gray-300"
+                                                                {QUIZ_QUESTIONS[currentQuestionIndex].options.map(option => (
+                                                                    <div
+                                                                        key={option.value}
+                                                                        className={`
+                                                                            flex items-center space-x-2 rounded-lg border p-4 cursor-pointer transition-colors
+                                                                            ${quizAnswers[QUIZ_QUESTIONS[currentQuestionIndex].key] === option.value
+                                                                                ? 'bg-purple-900/20 border-purple-500'
+                                                                                : 'bg-gray-800 border-gray-700 hover:border-gray-600'
+                                                                            }
+                                                                        `}
+                                                                    >
+                                                                        <RadioGroupItem
+                                                                            value={option.value}
+                                                                            id={option.value}
+                                                                            className="text-purple-500"
+                                                                        />
+                                                                        <Label
+                                                                            htmlFor={option.value}
+                                                                            className="flex-1 cursor-pointer text-gray-300"
+                                                                        >
+                                                                            {option.label}
+                                                                        </Label>
+                                                                    </div>
+                                                                ))}
+                                                            </RadioGroup>
+                                                            <ScrollBar orientation="vertical" />
+                                                        </ScrollArea>
+                                                    ) : (
+                                                        <div className="grid grid-cols-2 gap-2">
+                                                            {QUIZ_QUESTIONS[currentQuestionIndex].options.map(option => (
+                                                                <div
+                                                                    key={option.value}
+                                                                    className={`
+                                                                        relative rounded-lg border p-4 cursor-pointer transition-colors
+                                                                        ${(quizAnswers[QUIZ_QUESTIONS[currentQuestionIndex].key] || []).includes(option.value)
+                                                                            ? 'bg-purple-900/20 border-purple-500'
+                                                                            : 'bg-gray-800 border-gray-700 hover:border-gray-600'
+                                                                        }
+                                                                    `}
+                                                                    onClick={() => {
+                                                                        const currentValues = quizAnswers[QUIZ_QUESTIONS[currentQuestionIndex].key] || [];
+                                                                        const newValues = currentValues.includes(option.value)
+                                                                            ? currentValues.filter(v => v !== option.value)
+                                                                            : [...currentValues, option.value];
+                                                                        handleQuizAnswer(QUIZ_QUESTIONS[currentQuestionIndex].key, newValues);
+                                                                    }}
                                                                 >
-                                                                    {option.label}
-                                                                </Label>
-                                        </div>
-                                    ))}
-                                </RadioGroup>
-                                                    <ScrollBar orientation="vertical" />
-                                                </ScrollArea>
-                                            ) : (
-                                                <div className="grid grid-cols-2 gap-2">
-                                                    {QUIZ_QUESTIONS[currentQuestionIndex].options.map(option => (
-                                                        <div
-                                                            key={option.value}
-                                                            className={`
-                                                                relative rounded-lg border p-4 cursor-pointer transition-colors
-                                                                ${(quizAnswers[QUIZ_QUESTIONS[currentQuestionIndex].key] || []).includes(option.value)
-                                                                    ? 'bg-purple-900/20 border-purple-500'
-                                                                    : 'bg-gray-800 border-gray-700 hover:border-gray-600'
-                                                                }
-                                                            `}
-                                                            onClick={() => {
-                                                                const currentValues = quizAnswers[QUIZ_QUESTIONS[currentQuestionIndex].key] || [];
-                                                                const newValues = currentValues.includes(option.value)
-                                                                    ? currentValues.filter(v => v !== option.value)
-                                                                    : [...currentValues, option.value];
-                                                                handleQuizAnswer(QUIZ_QUESTIONS[currentQuestionIndex].key, newValues);
-                                                            }}
-                                                        >
-                                                            {/* {option.logo ? (
-                                                                <img
-                                                                    src={getImageUrl(option.logo, 'w92')}
-                                                                    alt={option.label}
-                                                                    className="w-full h-auto rounded mb-2"
-                                                                />
-                                                            ) : null} */}
-                                                            <Label className="text-sm text-center block text-gray-300">
-                                                                {option.label}
-                                             </Label>
-                                                            {(quizAnswers[QUIZ_QUESTIONS[currentQuestionIndex].key] || []).includes(option.value) && (
-                                                                <div className="absolute -top-2 -right-2 bg-purple-500 rounded-full p-0.5">
-                                                                    <CheckIcon className="h-3 w-3 text-white" />
+                                                                    {/* {option.logo ? (
+                                                                        <img
+                                                                            src={getImageUrl(option.logo, 'w92')}
+                                                                            alt={option.label}
+                                                                            className="w-full h-auto rounded mb-2"
+                                                                        />
+                                                                    ) : null} */}
+                                                                    <Label className="text-sm text-center block text-gray-300">
+                                                                        {option.label}
+                                                                    </Label>
+                                                                    {(quizAnswers[QUIZ_QUESTIONS[currentQuestionIndex].key] || []).includes(option.value) && (
+                                                                        <div className="absolute -top-2 -right-2 bg-purple-500 rounded-full p-0.5">
+                                                                            <CheckIcon className="h-3 w-3 text-white" />
+                                                                        </div>
+                                                                    )}
                                                                 </div>
-                                                            )}
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
+                                                            ))}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
                                         </div>
                                         <DialogFooter>
+                                            <Button
+                                                onClick={goToPreviousQuestion}
+                                                disabled={currentQuestionIndex === 0}
+                                                className="w-full bg-purple-900 hover:bg-purple-800 text-white disabled:bg-gray-700"
+                                            >
+                                                Previous
+                                            </Button>
                                             <Button
                                                 onClick={goToNextQuestion}
                                                 disabled={!quizAnswers[QUIZ_QUESTIONS[currentQuestionIndex].key]}
                                                 className="w-full bg-purple-900 hover:bg-purple-800 text-white disabled:bg-gray-700"
                                             >
                                                 {currentQuestionIndex === QUIZ_QUESTIONS.length - 1 ? "Find Matches" : "Next"}
-                            </Button>
+                                            </Button>
                                         </DialogFooter>
-                        </div>
-                    )}
+                                    </div>
+                                )}
                             </DialogContent>
                         </Dialog>
                     )}
 
-                {/* Details Dialog */}
-                <DetailsDialog
-                    isOpen={isDetailsOpen}
-                    onClose={handleCloseDetails}
+                    {/* Details Dialog */}
+                    <DetailsDialog
+                        isOpen={isDetailsOpen}
+                        onClose={handleCloseDetails}
                         item={selectedItemDetails}
                         onAddToWatchlist={addToWatchlist}
                         isAddedToWatchlist={
