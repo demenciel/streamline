@@ -63,7 +63,6 @@ class TmdbController extends Controller
                 'watch_region' => 'sometimes|string|size:2', // Expect ISO 3166-1 code
                 'region' => 'sometimes|string|size:2', // General region parameter
                 'page' => 'sometimes|integer|min:1',
-                // Add other filter params as needed
             ]);
             
             // If watch_region is set but region isn't, use watch_region for region too
@@ -147,6 +146,10 @@ class TmdbController extends Controller
     public function getMovieDetails(string $id): JsonResponse
     {
         try {
+            // validate id format
+            if (!preg_match('/^[0-9]+$/', $id)) {
+                throw new \Exception('Invalid movie ID');
+            }
             $data = $this->tmdbService->getMovieDetails($id);
             return response()->json($data);
         } catch (\Exception $e) {
@@ -157,6 +160,10 @@ class TmdbController extends Controller
     public function getTvDetails(string $id): JsonResponse
     {
         try {
+            // validate id format
+            if (!preg_match('/^[0-9]+$/', $id)) {
+                throw new \Exception('Invalid TV show ID');
+            }
             $data = $this->tmdbService->getTvDetails($id);
             return response()->json($data);
         } catch (\Exception $e) {
@@ -167,6 +174,10 @@ class TmdbController extends Controller
     public function getMovieWatchProviders(string $id, Request $request): JsonResponse
     {
         try {
+            // validate id format
+            if (!preg_match('/^[0-9]+$/', $id)) {
+                throw new \Exception('Invalid movie ID');
+            }
             $region = $request->input('region', $this->tmdbService->getActiveRegion());
             $data = $this->tmdbService->getMovieWatchProviders($id);
             return response()->json($data);
@@ -178,6 +189,10 @@ class TmdbController extends Controller
     public function getTvWatchProviders(string $id, Request $request): JsonResponse
     {
         try {
+            // validate id format
+            if (!preg_match('/^[0-9]+$/', $id)) {
+                throw new \Exception('Invalid TV show ID');
+            }
             $region = $request->input('region', $this->tmdbService->getActiveRegion());
             $data = $this->tmdbService->getTvWatchProviders($id);
             return response()->json($data);
@@ -212,6 +227,10 @@ class TmdbController extends Controller
     public function getMovieVideos(string $id): JsonResponse
     {
         try {
+            // validate id format
+            if (!preg_match('/^[0-9]+$/', $id)) {
+                throw new \Exception('Invalid movie ID');
+            }
             $data = $this->tmdbService->getMovieVideos($id);
             return response()->json($data);
         } catch (\Exception $e) {
@@ -225,6 +244,10 @@ class TmdbController extends Controller
     public function getTvVideos(string $id): JsonResponse
     {
         try {
+            // validate id format
+            if (!preg_match('/^[0-9]+$/', $id)) {
+                throw new \Exception('Invalid TV show ID');
+            }
             $data = $this->tmdbService->getTvVideos($id);
             return response()->json($data);
         } catch (\Exception $e) {

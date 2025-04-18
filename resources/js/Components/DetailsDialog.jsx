@@ -206,7 +206,7 @@ export function DetailsDialog({ isOpen, onClose, item, onAddToWatchlist, isAdded
             'Hulu': 'bg-green-500',
             'HBO Max': 'bg-purple-700',
             'Max': 'bg-purple-700',
-            'Apple TV+': 'bg-neutral-800', // grayscale
+            'Apple TV+': 'bg-gray-800', // grayscale
             'Paramount+': 'bg-blue-500',
             'Shudder': 'bg-red-700',
             'Cineplex': 'bg-yellow-400',

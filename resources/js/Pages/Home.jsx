@@ -26,8 +26,14 @@ import {
     XMarkIcon,
     SparklesIcon,
     ArrowPathIcon,
-    QuestionMarkCircleIcon
+    QuestionMarkCircleIcon,
+    ArrowRightIcon,
+    ArrowLeftIcon,
+    ArrowUpIcon,
+    ArrowDownIcon,
+    ArrowPathRoundedSquareIcon,
 } from "@heroicons/react/24/outline"
+import { WandSparklesIcon } from 'lucide-react'
 
 // Utility function for TMDB image URLs
 const getImageUrl = (path, size = "w342") => {
@@ -127,14 +133,13 @@ export default function Home(props) {
     const [tvGenres, setTvGenres] = useState([])
     const [userRegion, setUserRegion] = useState('US')
     const [regionName, setRegionName] = useState('United States')
-
+    const [mode, setMode] = useState('random')
     // Filter State
     const currentYear = new Date().getFullYear()
     const [selectedGenre, setSelectedGenre] = useState('')
     const [yearRange, setYearRange] = useState([1980, currentYear])
     const [minRating, setMinRating] = useState(6)
     const [selectedProviders, setSelectedProviders] = useState([])
-    const [isGridView, setIsGridView] = useState(false);
 
     // Details Dialog State
     const [isDetailsOpen, setIsDetailsOpen] = useState(false)
@@ -789,45 +794,73 @@ export default function Home(props) {
             />
 
 
-            <div className="min-h-screen w-full bg-gray-900 text-white">
+            <section className="min-h-screen w-full bg-gray-900 text-white">
                 <div className="container mx-auto px-2 sm:px-4 py-4 sm:py-8 max-w-full overflow-x-hidden">
                     {/* Header Section - Improve mobile spacing */}
-                    <div className="w-full flex flex-col items-center justify-between gap-3 mb-6">
+                    <header className="w-full flex flex-col items-center justify-between gap-3 mb-6">
                         {/* Header Section */}
-                        <div className="w-full flex flex-col items-center justify-between gap-3 mb-6 text-center">
+                        <section className="w-full flex flex-col items-center text-center gap-3 mb-6">
                             <h1 className="text-3xl sm:text-4xl font-bold">
                                 Vibeflix<span className="text-purple-500">.</span>
                             </h1>
                             <p className="text-gray-400 text-sm sm:text-base max-w-lg">
-                                No more doom scrolling <span className="text-white font-semibold">Netflix</span> or <span className="text-white font-semibold">Prime</span>.
-                                Let your <span className="text-purple-400 font-medium">mood</span> choose what to watch.
+                                No more doom scrolling{' '}
+                                <span className="text-white font-semibold">Netflix</span> or{' '}
+                                <span className="text-white font-semibold">Prime</span>. Let your{' '}
+                                <span className="text-purple-400 font-medium">mood</span> choose what to
+                                watch.
                             </p>
-                            <span className="text-gray-500 text-xs sm:text-sm mt-1">Currently browsing from {userRegion}</span>
-                        </div>
+                            <span className="text-gray-500 text-xs sm:text-sm">
+                                Currently browsing from {userRegion}
+                            </span>
+                        </section>
 
                         {/* Make buttons stack better on mobile */}
-                        <div className='flex flex-col sm:flex-row items-center justify-between gap-3 mt-4 sm:mt-8 w-full'>
-                            <Button
-                                onClick={startQuiz}
-                                className="w-full h-10 sm:h-12 bg-purple-900 hover:bg-purple-800 text-white"
+                        <section className="flex flex-col sm:flex-row items-center justify-center gap-4 mt-4 sm:mt-8 w-full">
+                            {/* segmented control */}
+                            <div className="flex bg-gray-800 rounded-lg p-1">
+                                <button
+                                    onClick={() => setMode('personal')}
+                                    className={`px-4 py-2 rounded-lg text-sm font-medium transition ${mode === 'personal'
+                                        ? 'bg-purple-600 text-white'
+                                        : 'text-gray-400 hover:text-white'
+                                        }`}
+                                >
+                                    <WandSparklesIcon className="inline-block h-5 w-5 mr-1" />
+                                    Personalized
+                                </button>
+                                <button
+                                    onClick={() => setMode('random')}
+                                    className={`px-4 py-2 rounded-lg text-sm font-medium transition ${mode === 'random'
+                                        ? 'bg-indigo-600 text-white'
+                                        : 'text-gray-400 hover:text-white'
+                                        }`}
+                                >
+                                    <ArrowPathRoundedSquareIcon className="inline-block h-5 w-5 mr-1" />
+                                    Random
+                                </button>
+                            </div>
+
+                            {/* search button */}
+                            <button
+                                disabled={isLoading}
+                                onClick={() => setSearchActive(x => !x)}
+                                className="flex items-center px-4 py-2 border border-purple-900 rounded-lg text-sm text-white bg-transparent hover:bg-purple-800 transition"
                             >
-                                <SparklesIcon className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
-                                Personalized Recommendation
-                            </Button>
-                            <Button
-                                onClick={skipToRandom}
-                                className="w-full h-10 sm:h-12 bg-indigo-800 hover:bg-indigo-700 text-white"
-                            >
-                                <ArrowPathIcon className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
-                                Skip to Random
-                            </Button>
-                            <Button
-                                onClick={() => setSearchActive(!searchActive)}
-                                className="w-full h-10 sm:h-12 border border-purple-900 bg-transparent hover:bg-purple-800 text-white"
-                            >
-                                <MagnifyingGlassIcon className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
+                                <MagnifyingGlassIcon className="h-5 w-5 mr-1" />
                                 Search
-                            </Button>
+                            </button>
+                        </section>
+
+                        {/* ---- Primary CTA ---- */}
+                        <div className="mt-6 flex justify-center">
+                            <button
+                                disabled={isLoading}
+                                onClick={mode === 'random' ? skipToRandom : startQuiz}
+                                className="flex items-center px-8 py-3 bg-purple-600 hover:bg-purple-500 rounded-full text-white font-semibold transition"
+                            >
+                                {mode === 'random' ? 'Surprise Me' : 'Find My Pick'}
+                            </button>
                         </div>
 
                         {/* Improve search input responsive layout */}
@@ -843,7 +876,7 @@ export default function Home(props) {
                                 <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
                             </div>
                         )}
-                    </div>
+                    </header>
 
                     {/* "I'm Feeling Lucky" Result Card */}
                     {showQuizResultCard && quizRecommendation && !quizActive && (
@@ -851,7 +884,21 @@ export default function Home(props) {
                             <h3 className="text-xl font-semibold mb-6 text-center">We recommend:</h3>
 
                             {/* Replace separate featured item with central carousel */}
-                            {quizRecommendations.length > 0 && (
+                            <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2 sm:gap-4">
+                                {quizRecommendations.map(item => (
+                                    <ResultItem
+                                        key={`${item.id}-${item.media_type}`}
+                                        item={item}
+                                        onAddToWatchlist={addToWatchlist}
+                                        onShowDetails={handleShowDetails}
+                                        isAddedToWatchlist={watchlist.some(
+                                            w => w.id === item.id && w.media_type === item.media_type
+                                        )}
+                                    />
+                                ))}
+                            </div>
+                            {/* {quizRecommendations.length > 0 && (
+                                
                                 <div className="my-4">
                                     <MediaCarousel
                                         title=""
@@ -867,7 +914,7 @@ export default function Home(props) {
                                         }}
                                     />
                                 </div>
-                            )}
+                            )} */}
                         </div>
                     )}
 
@@ -1173,7 +1220,7 @@ export default function Home(props) {
                         }
                     />
                 </div>
-            </div>
+            </section>
         </>
     );
 } 
