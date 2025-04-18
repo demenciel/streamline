@@ -73,32 +73,22 @@ class TmdbService
         }
         
         // Add default region for APIs that support it, if not already specified
-        // TMDB uses 'region' parameter for regional preferences
         if (str_contains($endpoint, '/discover/') && !isset($params['region'])) {
             $params['region'] = $this->defaultRegion;
         }
         
-        // Make cache key region-specific for region-dependent data
-        $regionSuffix = '';
-        if (isset($params['region']) || isset($params['watch_region'])) {
-            $regionSuffix = '_region_' . ($params['region'] ?? $params['watch_region'] ?? $this->defaultRegion);
+        // Remove all caching logic and just make the direct API call
+        $response = Http::withToken($this->apiKey)
+            ->baseUrl($this->baseUrl)
+            ->get($endpoint, $params);
+
+        if ($response->failed()) {
+            // Basic error handling, could be expanded
+            Log::error('TMDB API Error: ' . $response->body());
+            $response->throw(); // Throw an exception on failure
         }
-        
-        $cacheKey = 'tmdb_' . $endpoint . '_' . http_build_query($params) . $regionSuffix;
 
-        return Cache::remember($cacheKey, $this->cacheDuration, function () use ($endpoint, $params) {
-            $response = Http::withToken($this->apiKey)
-                ->baseUrl($this->baseUrl)
-                ->get($endpoint, $params);
-
-            if ($response->failed()) {
-                // Basic error handling, could be expanded
-                Log::error('TMDB API Error: ' . $response->body());
-                $response->throw(); // Throw an exception on failure
-            }
-
-            return $response->json();
-        });
+        return $response->json();
     }
 
     /**

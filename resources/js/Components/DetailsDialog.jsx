@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Button } from "@/components/ui/button";
+import { Button } from "@/Components/ui/button";
 import {
     Dialog,
     DialogContent,
@@ -10,12 +10,12 @@ import {
     DialogFooter,
     DialogClose,
     DialogTrigger,
-} from "@/components/ui/dialog";
-import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
+} from "@/Components/ui/dialog";
+import { Badge } from "@/Components/ui/badge";
+import { Separator } from "@/Components/ui/separator";
 import { Check, Plus, Star, Calendar, Clock, Film, Tv, Play } from 'lucide-react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/Components/ui/tabs";
+import { ScrollArea } from "@/Components/ui/scroll-area";
 import { XMarkIcon } from '@heroicons/react/24/outline';
 
 const StreamButtonIcon = ({ flatProviders, rentProviders, buyProviders }) => {

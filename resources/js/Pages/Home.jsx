@@ -4,14 +4,14 @@ import axios from 'axios'
 import { debounce } from 'lodash'
 
 // Import shadcn components
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
-import { Badge } from "@/components/ui/badge"
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area"
+import { Button } from "@/Components/ui/button"
+import { Input } from "@/Components/ui/input"
+import { Label } from "@/Components/ui/label"
+import { RadioGroup, RadioGroupItem } from "@/Components/ui/radio-group"
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/Components/ui/accordion"
+import { Badge } from "@/Components/ui/badge"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/Components/ui/dialog"
+import { ScrollArea, ScrollBar } from "@/Components/ui/scroll-area"
 
 // Import custom components
 import { ResultItem } from "@/Components/ResultItem"
@@ -786,11 +786,11 @@ export default function Home(props) {
     return (
         <>
             <Head
-                title="Vibeflix | Tired of Scrolling? Let Your Mood Pick the Movie"
-                description="No more endless scrolling on Netflix. Vibeflix gives you a personalized pick based on your mood — instantly."
-                ogTitle="Vibeflix | Your Mood. Your Movie."
-                ogDescription="Feeling indecisive? Vibeflix recommends the perfect movie or show in seconds based on your vibe."
-                ogImage="/images/vibeflix-social-share.jpg"
+                title="PickForMeDaddy | Tired of Scrolling? Let Your Mood Pick the Movie"
+                description="No more endless scrolling on Netflix. PickForMeDaddy gives you a personalized pick based on your mood — instantly."
+                ogTitle="PickForMeDaddy | Your Mood. Your Movie."
+                ogDescription="Feeling indecisive? PickForMeDaddy recommends the perfect movie or show in seconds based on your vibe."
+                ogImage="/images/pickformedaddy-social-share.jpg"
             />
 
 

@@ -1,7 +1,7 @@
 import React from 'react';
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { Button } from "@/Components/ui/button";
+import { Card, CardContent, CardFooter, CardHeader } from "@/Components/ui/card";
+import { Badge } from "@/Components/ui/badge";
 import { Check, Plus, Star } from 'lucide-react';
 import { cn } from "@/lib/utils";
 

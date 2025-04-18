@@ -4,11 +4,6 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\TmdbController;
 
-// Default auth route - can be removed if not using Sanctum/user accounts
-Route::get('/user', function (Request $request) {
-    return $request->user();
-})->middleware('auth:sanctum');
-
 // TMDB API Proxy Routes
 // add rate limiting
 Route::middleware('throttle:60,1')->group(function () {
