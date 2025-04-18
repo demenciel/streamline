@@ -801,7 +801,7 @@ export default function Home(props) {
                         {/* Header Section */}
                         <section className="w-full flex flex-col items-center text-center gap-3 mb-6">
                             <h1 className="text-3xl sm:text-4xl font-bold">
-                                Vibeflix<span className="text-purple-500">.</span>
+                                PickForMeDaddy<span className="text-purple-500">.</span>
                             </h1>
                             <p className="text-gray-400 text-sm sm:text-base max-w-lg">
                                 No more doom scrolling{' '}
@@ -827,7 +827,7 @@ export default function Home(props) {
                                         }`}
                                 >
                                     <WandSparklesIcon className="inline-block h-5 w-5 mr-1" />
-                                    Personalized
+                                    Mood-Based
                                 </button>
                                 <button
                                     onClick={() => setMode('random')}
@@ -859,7 +859,7 @@ export default function Home(props) {
                                 onClick={mode === 'random' ? skipToRandom : startQuiz}
                                 className="flex items-center px-8 py-3 bg-purple-600 hover:bg-purple-500 rounded-full text-white font-semibold transition"
                             >
-                                {mode === 'random' ? 'Surprise Me' : 'Find My Pick'}
+                                {mode === 'random' ? 'Surprise Me Daddy' : 'Pick Something for Me'}
                             </button>
                         </div>
 
