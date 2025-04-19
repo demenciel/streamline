@@ -190,6 +190,10 @@ export function DetailsDialog({ isOpen, onClose, item, onAddToWatchlist, isAdded
         'YouTube Movies': 'https://www.youtube.com/movies',
         'iTunes': 'https://www.apple.com/itunes/charts/movies/',
         'Microsoft Store': 'https://www.microsoft.com/en-us/store/movies-tv',
+        'Fubo': 'https://www.fubo.tv/',
+        'Peacock': 'https://www.peacocktv.com/',
+        'Crunchyroll': 'https://www.crunchyroll.com/',
+        'NBCUniversal': 'https://www.nbcuniversal.com/',
     }
 
     const getProviderColors = (providers) => {
@@ -221,6 +225,9 @@ export function DetailsDialog({ isOpen, onClose, item, onAddToWatchlist, isAdded
             'iTunes': 'bg-pink-500',
             'Microsoft Store': 'bg-blue-700',
             'Crunchyroll': 'bg-orange-500',
+            'NBCUniversal': 'bg-blue-700',
+            'Fubo': 'bg-red-700',
+            'Peacock': 'bg-slate-700',
         }
         const providerColor = Object.keys(colors).find(key => providerName.includes(key) || key.includes(providerName)) || 'bg-gray-700'
         return colors[providerColor] || 'bg-gray-700'
