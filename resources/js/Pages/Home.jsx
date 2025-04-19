@@ -159,6 +159,7 @@ export default function Home(props) {
     const [showQuizResultCard, setShowQuizResultCard] = useState(false);
     const [trendingItems, setTrendingItems] = useState([]); // State for trending items
     const [searchActive, setSearchActive] = useState(false);
+    const [upcomingMovies, setUpcomingMovies] = useState([]);
     // Watchlist State
     const [watchlist, setWatchlist] = useState(() => {
         const saved = localStorage.getItem('watchlist')
@@ -208,8 +209,17 @@ export default function Home(props) {
                 // Keep browser-detected region if API call fails
             }
         }
+        const fetchUpcomingMovies = async () => {
+            try {
+                const response = await axios.get('/api/tmdb/upcoming', { params: { region: userRegion } })
+                setUpcomingMovies(response.data.results || [])
+            } catch (err) {
+                console.error("Failed to fetch upcoming movies:", err)
+            }
+        }
 
         fetchRegionFromApi()
+        fetchUpcomingMovies()
     }, [])
 
     // Fetch Genres on mount
@@ -218,13 +228,13 @@ export default function Home(props) {
             setIsLoading(true) // Use main loading state
             try {
                 // Fetch Genres
+
                 const [movieRes, tvRes] = await Promise.all([
                     axios.get('/api/tmdb/genres/movie'),
-                    axios.get('/api/tmdb/genres/tv')
+                    axios.get('/api/tmdb/genres/tv'),
                 ]);
                 setMovieGenres(movieRes.data.genres || []);
                 setTvGenres(tvRes.data.genres || []);
-
                 setError(null);
             } catch (err) {
                 console.error("Failed to fetch initial data:", err)
@@ -797,6 +807,7 @@ export default function Home(props) {
             <section className="min-h-screen w-full bg-gray-900 text-white">
                 <div className="container mx-auto px-2 sm:px-4 py-4 sm:py-8 max-w-full overflow-x-hidden">
                     {/* Header Section - Improve mobile spacing */}
+
                     <header className="w-full flex flex-col items-center justify-between gap-3 mb-6">
                         {/* Header Section */}
                         <section className="w-full flex flex-col items-center text-center gap-3 mb-6">
@@ -918,6 +929,25 @@ export default function Home(props) {
                         </div>
                     )}
 
+                    {!results.length > 0 && !quizRecommendation && (
+                        <section className="mt-12 max-w-3xl mx-auto px-4 text-left text-gray-300">
+                            <h2 className="text-2xl font-bold text-white mb-4">What is PickForMeDaddy?</h2>
+                            <p className="mb-4">
+                                PickForMeDaddy is your new fave streaming sidekick. Instead of scrolling forever through
+                                <strong className="text-white"> Netflix, Prime, Disney+</strong>, and more, we help you choose what to watch based on your <strong className="text-purple-400">mood</strong>.
+                            </p>
+                            <p className="mb-4">
+                                Whether you're feeling spicy, sad, weird, or just chaotic — our mood quiz or “Surprise Me Daddy” button gets you a curated pick in seconds.
+                            </p>
+                            <p className="mb-4">
+                                Plus, you can search across platforms, save your faves in a watchlist, and never argue with your roommate about what to watch again.
+                            </p>
+                            <p>
+                                Built with love by indecisive streamers. We're still improving things — if something feels off,
+                                <a href="mailto:contact@techno-saas.com" className="underline text-purple-400"> let us know</a>.
+                            </p>
+                        </section>
+                    )}
                     {/* Results Section */}
                     {isLoading ? (
                         <div className="text-center py-12">
@@ -928,7 +958,7 @@ export default function Home(props) {
                         <div className="text-center py-12 text-red-400 bg-red-900/20 rounded-lg">
                             <p>{error}</p>
                         </div>
-                    ) : (results.length > 0 || !quizRecommendation) ? (
+                    ) : (results.length > 0 || !quizRecommendation) && searchActive ? (
                         <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2 sm:gap-4">
                             {results.map(item => (
                                 <ResultItem
@@ -948,7 +978,7 @@ export default function Home(props) {
                             <p className="mt-4 text-gray-400">
                                 {searchQuery
                                     ? "No results found. Try adjusting your search or filters."
-                                    : "Search for movies and TV shows, or try the 'I'm Feeling Lucky' quiz!"}
+                                    : "Search for movies and TV shows, or try the 'Pick Something for Me' button!"}
                             </p>
                         </div>
                     )}
@@ -1019,6 +1049,16 @@ export default function Home(props) {
                                 </AccordionContent>
                             </AccordionItem>
                         </Accordion>
+                    </section>
+
+                    {/* Upcoming Movies Section */}
+                    <section className="mt-8 sm:mt-12">
+                        <h2 className="text-2xl font-bold text-white mb-4">Upcoming Movies</h2>
+                        <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2 sm:gap-4">
+                            {upcomingMovies.slice(0, 4).map(item => (
+                                <ResultItem key={item.id} item={item} onAddToWatchlist={addToWatchlist} onShowDetails={handleShowDetails} isAddedToWatchlist={watchlist.some(w => w.id === item.id && w.media_type === item.media_type)} />
+                            ))}
+                        </div>
                     </section>
 
                     {/* Quiz Dialog */}
@@ -1220,7 +1260,19 @@ export default function Home(props) {
                         }
                     />
                 </div>
+                <footer className="text-gray-500 text-sm py-6 mt-16 border-t border-gray-800">
+                    <div className="container mx-auto px-4 flex flex-col sm:flex-row justify-between items-center text-center sm:text-left gap-3">
+                        <p>&copy; {new Date().getFullYear()} PickForMeDaddy. Made with chaos 💜</p>
+                        <div className="flex gap-4">
+                            <a href="/" className="hover:text-white">PickForMeDaddy</a>
+                            <a href="/privacy" className="hover:text-white">Privacy Policy</a>
+                            <a href="/terms" className="hover:text-white">Terms of Use</a>
+                            <a href="/contact" className="hover:text-white">Contact</a>
+                        </div>
+                    </div>
+                </footer>
             </section>
+
         </>
     );
 } 

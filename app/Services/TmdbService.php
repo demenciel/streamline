@@ -42,13 +42,13 @@ class TmdbService
                 $parts = explode('_', $locale);
                 $language = strtolower($parts[0]);
                 $region = isset($parts[1]) ? strtoupper($parts[1]) : $this->defaultRegion;
-                
+
                 $this->defaultLanguage = $language . '-' . $region;
                 $this->defaultRegion = $region;
                 return;
             }
         }
-        
+
         // Fallback: Try to use the application locale
         $appLocale = App::getLocale();
         if ($appLocale && $appLocale !== 'en') {
@@ -56,7 +56,7 @@ class TmdbService
             $parts = explode('-', $appLocale);
             $language = strtolower($parts[0]);
             $region = isset($parts[1]) ? strtoupper($parts[1]) : $this->defaultRegion;
-            
+
             $this->defaultLanguage = $language . '-' . $region;
             $this->defaultRegion = $region;
         }
@@ -71,12 +71,12 @@ class TmdbService
         if (!isset($params['language'])) {
             $params['language'] = $this->defaultLanguage;
         }
-        
+
         // Add default region for APIs that support it, if not already specified
         if (str_contains($endpoint, '/discover/') && !isset($params['region'])) {
             $params['region'] = $this->defaultRegion;
         }
-        
+
         // Remove all caching logic and just make the direct API call
         $response = Http::withToken($this->apiKey)
             ->baseUrl($this->baseUrl)
@@ -147,7 +147,7 @@ class TmdbService
     {
         // Append details, credits and watch providers to the response
         return $this->makeRequest("/movie/{$id}", [
-            'append_to_response' => 'credits,watch/providers', 
+            'append_to_response' => 'credits,watch/providers',
             'watch_region' => $this->defaultRegion
         ]);
     }
@@ -156,7 +156,7 @@ class TmdbService
     {
         // Append details, credits and watch providers to the response
         return $this->makeRequest("/tv/{$id}", [
-            'append_to_response' => 'credits,watch/providers', 
+            'append_to_response' => 'credits,watch/providers',
             'watch_region' => $this->defaultRegion
         ]);
     }
@@ -192,7 +192,7 @@ class TmdbService
     {
         return $this->makeRequest("/movie/{$id}/videos");
     }
-    
+
     /**
      * Get videos (including trailers) for a TV show
      */
@@ -200,4 +200,9 @@ class TmdbService
     {
         return $this->makeRequest("/tv/{$id}/videos");
     }
-} 
+
+    public function getUpcomingMovies(string $region): array
+    {
+        return $this->makeRequest('/movie/upcoming?language=en-US&page=1&region=' . $region);
+    }
+}

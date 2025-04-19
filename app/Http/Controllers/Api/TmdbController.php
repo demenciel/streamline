@@ -16,14 +16,14 @@ class TmdbController extends Controller
     {
         // Pass request to service for locale detection
         $this->tmdbService = $tmdbService;
-        
+
         // Check for explicit locale override in request
         if ($request->has('locale')) {
             $locale = $request->input('locale');
             $parts = explode('-', $locale);
             $language = $parts[0];
             $region = $parts[1] ?? null;
-            
+
             $this->tmdbService->setLocale($language, $region);
         }
     }
@@ -64,22 +64,22 @@ class TmdbController extends Controller
                 'region' => 'sometimes|string|size:2', // General region parameter
                 'page' => 'sometimes|integer|min:1',
             ]);
-            
+
             // If watch_region is set but region isn't, use watch_region for region too
             if (isset($validated['watch_region']) && !isset($validated['region'])) {
                 $validated['region'] = $validated['watch_region'];
             }
-            
+
             // If no region is specified, use the service's default region
             if (!isset($validated['region'])) {
                 $validated['region'] = $this->tmdbService->getActiveRegion();
             }
-            
+
             // If region is set but watch_region isn't, use region for watch_region
             if (isset($validated['region']) && !isset($validated['watch_region']) && isset($validated['with_watch_providers'])) {
                 $validated['watch_region'] = $validated['region'];
             }
-            
+
             $data = $this->tmdbService->discoverMovies($validated);
             return response()->json($data);
         } catch (\Exception $e) {
@@ -100,22 +100,22 @@ class TmdbController extends Controller
                 'region' => 'sometimes|string|size:2', // General region parameter
                 'page' => 'sometimes|integer|min:1',
             ]);
-            
+
             // If watch_region is set but region isn't, use watch_region for region too
             if (isset($validated['watch_region']) && !isset($validated['region'])) {
                 $validated['region'] = $validated['watch_region'];
             }
-            
+
             // If no region is specified, use the service's default region
             if (!isset($validated['region'])) {
                 $validated['region'] = $this->tmdbService->getActiveRegion();
             }
-            
+
             // If region is set but watch_region isn't, use region for watch_region
             if (isset($validated['region']) && !isset($validated['watch_region']) && isset($validated['with_watch_providers'])) {
                 $validated['watch_region'] = $validated['region'];
             }
-            
+
             $data = $this->tmdbService->discoverTvShows($validated);
             return response()->json($data);
         } catch (\Exception $e) {
@@ -131,11 +131,11 @@ class TmdbController extends Controller
                 'page' => 'sometimes|integer|min:1',
                 'region' => 'sometimes|string|size:2',
             ]);
-            
+
             // Use validated region or default
             $region = $validated['region'] ?? $this->tmdbService->getActiveRegion();
             $page = $validated['page'] ?? 1;
-            
+
             $data = $this->tmdbService->searchMulti($validated['query'], $page);
             return response()->json($data);
         } catch (\Exception $e) {
@@ -220,7 +220,7 @@ class TmdbController extends Controller
             return $this->handleApiException($e, __FUNCTION__);
         }
     }
-    
+
     /**
      * Get videos (including trailers) for a movie
      */
@@ -237,7 +237,7 @@ class TmdbController extends Controller
             return $this->handleApiException($e, __FUNCTION__);
         }
     }
-    
+
     /**
      * Get videos (including trailers) for a TV show
      */
@@ -249,6 +249,17 @@ class TmdbController extends Controller
                 throw new \Exception('Invalid TV show ID');
             }
             $data = $this->tmdbService->getTvVideos($id);
+            return response()->json($data);
+        } catch (\Exception $e) {
+            return $this->handleApiException($e, __FUNCTION__);
+        }
+    }
+
+    public function getUpcomingMovies(Request $request): JsonResponse
+    {
+        try {
+            $region = $request->input('region');
+            $data = $this->tmdbService->getUpcomingMovies($region);
             return response()->json($data);
         } catch (\Exception $e) {
             return $this->handleApiException($e, __FUNCTION__);
