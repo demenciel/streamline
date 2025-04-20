@@ -213,6 +213,54 @@ class TmdbService
 
     public function getUpcomingMovies(string $region): array
     {
-        return $this->makeRequest('/movie/upcoming?language=en-US&page=1&region=' . $region);
+        // Cache key for all upcoming movies
+        $allMoviesCacheKey = 'tmdb_all_upcoming_movies_' . $region;
+        // Cache key for tracking shown movies
+        $shownMoviesCacheKey = 'tmdb_shown_upcoming_movies_' . $region;
+        
+        // Get all movies (either from cache or API)
+        $allMovies = Cache::remember($allMoviesCacheKey, $this->cacheDuration, function () use ($region) {
+            // Fetch multiple pages to have a larger pool of movies
+            $allResults = [];
+            for ($page = 1; $page <= 3; $page++) {
+                $response = $this->makeRequest('/movie/upcoming?language=en-US&page=' . $page . '&region=' . $region);
+                if (isset($response['results']) && !empty($response['results'])) {
+                    $allResults = array_merge($allResults, $response['results']);
+                }
+            }
+            return ['results' => $allResults];
+        });
+        
+        // Get previously shown movie IDs
+        $shownMovieIds = Cache::get($shownMoviesCacheKey, []);
+        
+        // Filter out previously shown movies
+        $availableMovies = array_filter($allMovies['results'] ?? [], function($movie) use ($shownMovieIds) {
+            return !in_array($movie['id'], $shownMovieIds);
+        });
+        
+        // If we're running out of unseen movies (less than 5), reset the shown list
+        if (count($availableMovies) < 5) {
+            $shownMovieIds = [];
+            $availableMovies = $allMovies['results'] ?? [];
+            Cache::put($shownMoviesCacheKey, [], $this->cacheDuration);
+        }
+        
+        // Take a random subset of the available movies (10-20 movies)
+        $movieCount = min(count($availableMovies), rand(10, 20));
+        if ($movieCount > 0) {
+            shuffle($availableMovies);
+            $selectedMovies = array_slice($availableMovies, 0, $movieCount);
+            
+            // Track which movies were shown
+            $newShownMovieIds = array_merge($shownMovieIds, array_column($selectedMovies, 'id'));
+            Cache::put($shownMoviesCacheKey, $newShownMovieIds, $this->cacheDuration);
+            
+            return ['results' => $selectedMovies];
+        }
+        
+        // Fallback: if something went wrong, return a subset of all movies
+        shuffle($allMovies['results']);
+        return ['results' => array_slice($allMovies['results'], 0, 10)];
     }
 }

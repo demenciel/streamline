@@ -896,36 +896,43 @@ export default function Home(props) {
 
                             {/* Replace separate featured item with central carousel */}
                             <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2 sm:gap-4">
-                                {quizRecommendations.map(item => (
-                                    <ResultItem
-                                        key={`${item.id}-${item.media_type}`}
-                                        item={item}
-                                        onAddToWatchlist={addToWatchlist}
-                                        onShowDetails={handleShowDetails}
-                                        isAddedToWatchlist={watchlist.some(
-                                            w => w.id === item.id && w.media_type === item.media_type
-                                        )}
-                                    />
-                                ))}
+                                {quizRecommendations.length > 0 && (
+                                    <>
+                                        {/* Mobile swipeable view */}
+                                        <div className="block sm:hidden mb-4 overflow-x-auto pb-4">
+                                            <div className="flex w-max gap-3 px-2">
+                                                {quizRecommendations.map(item => (
+                                                    <div key={`${item.id}-${item.media_type}`} className="w-[180px] flex-shrink-0 snap-start">
+                                                        <ResultItem
+                                                            item={item}
+                                                            onAddToWatchlist={addToWatchlist}
+                                                            onShowDetails={handleShowDetails}
+                                                            isAddedToWatchlist={watchlist.some(
+                                                                w => w.id === item.id && w.media_type === item.media_type
+                                                            )}
+                                                        />
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+
+                                        {/* Desktop grid view */}
+                                        <div className="hidden sm:grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2 sm:gap-4">
+                                            {quizRecommendations.map(item => (
+                                                <ResultItem
+                                                    key={`${item.id}-${item.media_type}`}
+                                                    item={item}
+                                                    onAddToWatchlist={addToWatchlist}
+                                                    onShowDetails={handleShowDetails}
+                                                    isAddedToWatchlist={watchlist.some(
+                                                        w => w.id === item.id && w.media_type === item.media_type
+                                                    )}
+                                                />
+                                            ))}
+                                        </div>
+                                    </>
+                                )}
                             </div>
-                            {/* {quizRecommendations.length > 0 && (
-                                
-                                <div className="my-4">
-                                    <MediaCarousel
-                                        title=""
-                                        items={quizRecommendations}
-                                        onAddToWatchlist={addToWatchlist}
-                                        onShowDetails={handleShowDetails}
-                                        watchlist={watchlist}
-                                        onRequestMoreItems={fetchAnotherRecommendation}
-                                        featuredItemId={quizRecommendation.id}
-                                        onItemSelect={(item) => {
-                                            // Update the featured recommendation when a different item is selected
-                                            setQuizRecommendation(item);
-                                        }}
-                                    />
-                                </div>
-                            )} */}
                         </div>
                     )}
 
@@ -958,19 +965,45 @@ export default function Home(props) {
                         <div className="text-center py-12 text-red-400 bg-red-900/20 rounded-lg">
                             <p>{error}</p>
                         </div>
-                    ) : (results.length > 0 || !quizRecommendation) && searchActive ? (
+                    ) : (results.length > 0 && !quizRecommendation) && searchActive ? (
                         <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2 sm:gap-4">
-                            {results.map(item => (
-                                <ResultItem
-                                    key={`${item.id}-${item.media_type}`}
-                                    item={item}
-                                    onAddToWatchlist={addToWatchlist}
-                                    onShowDetails={handleShowDetails}
-                                    isAddedToWatchlist={watchlist.some(
-                                        w => w.id === item.id && w.media_type === item.media_type
-                                    )}
-                                />
-                            ))}
+                            {/* Swipeable results for mobile / grid for larger screens */}
+                            {results.length > 0 && (
+                                <>
+                                    {/* Mobile swipeable view */}
+                                    <div className="block sm:hidden mb-4 overflow-x-auto pb-4">
+                                        <div className="flex w-max gap-3 px-2">
+                                            {results.map(item => (
+                                                <div key={`${item.id}-${item.media_type}`} className="w-[180px] flex-shrink-0 snap-start">
+                                                    <ResultItem
+                                                        item={item}
+                                                        onAddToWatchlist={addToWatchlist}
+                                                        onShowDetails={handleShowDetails}
+                                                        isAddedToWatchlist={watchlist.some(
+                                                            w => w.id === item.id && w.media_type === item.media_type
+                                                        )}
+                                                    />
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    {/* Desktop grid view */}
+                                    <div className="hidden sm:grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2 sm:gap-4">
+                                        {results.map(item => (
+                                            <ResultItem
+                                                key={`${item.id}-${item.media_type}`}
+                                                item={item}
+                                                onAddToWatchlist={addToWatchlist}
+                                                onShowDetails={handleShowDetails}
+                                                isAddedToWatchlist={watchlist.some(
+                                                    w => w.id === item.id && w.media_type === item.media_type
+                                                )}
+                                            />
+                                        ))}
+                                    </div>
+                                </>
+                            )}
                         </div>
                     ) : !quizRecommendation && !quizActive && (
                         <div className="text-center py-12">
@@ -1221,7 +1254,7 @@ export default function Home(props) {
                                                 </div>
                                             </div>
                                         </div>
-                                        <DialogFooter>
+                                        <DialogFooter className="flex flex-row md:flex-col gap-2 mt-4">
                                             <Button
                                                 onClick={goToPreviousQuestion}
                                                 disabled={currentQuestionIndex === 0}

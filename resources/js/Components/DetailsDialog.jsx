@@ -191,7 +191,6 @@ export function DetailsDialog({ isOpen, onClose, item, onAddToWatchlist, isAdded
         'iTunes': 'https://www.apple.com/itunes/charts/movies/',
         'Microsoft Store': 'https://www.microsoft.com/en-us/store/movies-tv',
         'Fubo': 'https://www.fubo.tv/',
-        'Peacock': 'https://www.peacocktv.com/',
         'Crunchyroll': 'https://www.crunchyroll.com/',
         'NBCUniversal': 'https://www.nbcuniversal.com/',
     }
@@ -405,7 +404,7 @@ export function DetailsDialog({ isOpen, onClose, item, onAddToWatchlist, isAdded
                                         </div>
                                     )}
 
-                                    <div className="flex flex-col md:flex-row gap-2">
+                                    <div className="flex flex-col md:flex-row gap-4">
                                         {/* trailer button */}
                                         <Button variant="outline"
                                             className={`w-full border bg-transparent border-purple-900 ${flatProviders?.length === 0 && rentProviders?.length === 0 && buyProviders?.length === 0 ? 'bg-purple-800' : 'bg-transparent'} hover:bg-purple-800 text-white`}
@@ -553,7 +552,7 @@ export function DetailsDialog({ isOpen, onClose, item, onAddToWatchlist, isAdded
                             </Tabs>
                         )}
                     </div>
-                    <DialogFooter className="p-4 bg-gray-900 border-t border-gray-800">
+                    <DialogFooter className="p-4 bg-gray-900 border-t border-gray-800 flex flex-row md:flex-col gap-2 mt-4 justify-between">
                         <Button
                             variant={isAddedToWatchlist ? "default" : "outline"}
                             onClick={() => onAddToWatchlist(item)}
