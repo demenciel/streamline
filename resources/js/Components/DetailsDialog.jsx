@@ -226,7 +226,6 @@ export function DetailsDialog({ isOpen, onClose, item, onAddToWatchlist, isAdded
             'Crunchyroll': 'bg-orange-500',
             'NBCUniversal': 'bg-blue-700',
             'Fubo': 'bg-red-700',
-            'Peacock': 'bg-slate-700',
         }
         const providerColor = Object.keys(colors).find(key => providerName.includes(key) || key.includes(providerName)) || 'bg-gray-700'
         return colors[providerColor] || 'bg-gray-700'
