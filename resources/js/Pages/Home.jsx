@@ -895,7 +895,7 @@ export default function Home(props) {
                             <h3 className="text-xl font-semibold mb-6 text-center">We recommend:</h3>
 
                             {/* Replace separate featured item with central carousel */}
-                            <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2 sm:gap-4">
+                            <div className="w-full">
                                 {quizRecommendations.length > 0 && (
                                     <>
                                         {/* Mobile swipeable view */}
@@ -966,7 +966,7 @@ export default function Home(props) {
                             <p>{error}</p>
                         </div>
                     ) : (results.length > 0 && !quizRecommendation) && searchActive ? (
-                        <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2 sm:gap-4">
+                        <div className="w-full">
                             {/* Swipeable results for mobile / grid for larger screens */}
                             {results.length > 0 && (
                                 <>
