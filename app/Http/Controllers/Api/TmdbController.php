@@ -258,8 +258,45 @@ class TmdbController extends Controller
     public function getUpcomingMovies(Request $request): JsonResponse
     {
         try {
-            $region = $request->input('region');
-            $data = $this->tmdbService->getUpcomingMovies($region);
+            $validated = $request->validate([
+                'region' => 'required|string|size:2',
+                'language' => 'sometimes|string',
+            ]);
+            $region = $validated['region'];
+            $language = $validated['language'] ?? $this->tmdbService->getActiveLanguage();
+            $data = $this->tmdbService->getUpcomingMovies($region, $language);
+            return response()->json($data);
+        } catch (\Exception $e) {
+            return $this->handleApiException($e, __FUNCTION__);
+        }
+    }
+
+    public function getTrendingMovies(Request $request): JsonResponse
+    {
+        try {
+            $validated = $request->validate([
+                'region' => 'required|string|size:2',
+                'language' => 'sometimes|string',
+            ]);
+            $region = $validated['region'];
+            $language = $validated['language'] ?? $this->tmdbService->getActiveLanguage();
+            $data = $this->tmdbService->getTrendingMovies($region, $language);
+            return response()->json($data);
+        } catch (\Exception $e) {
+            return $this->handleApiException($e, __FUNCTION__);
+        }
+    }
+
+    public function getTrendingTvShows(Request $request): JsonResponse
+    {
+        try {
+            $validated = $request->validate([
+                'region' => 'required|string|size:2',
+                'language' => 'sometimes|string',
+            ]);
+            $region = $validated['region'];
+            $language = $validated['language'] ?? $this->tmdbService->getActiveLanguage();
+            $data = $this->tmdbService->getTrendingTvShows($region, $language);
             return response()->json($data);
         } catch (\Exception $e) {
             return $this->handleApiException($e, __FUNCTION__);

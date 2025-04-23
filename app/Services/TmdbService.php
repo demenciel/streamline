@@ -211,56 +211,177 @@ class TmdbService
         return $this->makeRequest("/tv/{$id}/videos");
     }
 
-    public function getUpcomingMovies(string $region): array
+    public function getUpcomingMovies(string $region, string $language): array
     {
         // Cache key for all upcoming movies
         $allMoviesCacheKey = 'tmdb_all_upcoming_movies_' . $region;
         // Cache key for tracking shown movies
         $shownMoviesCacheKey = 'tmdb_shown_upcoming_movies_' . $region;
-        
+
         // Get all movies (either from cache or API)
-        $allMovies = Cache::remember($allMoviesCacheKey, $this->cacheDuration, function () use ($region) {
+        $allMovies = Cache::remember($allMoviesCacheKey, $this->cacheDuration, function () use ($region, $language) {
             // Fetch multiple pages to have a larger pool of movies
             $allResults = [];
             for ($page = 1; $page <= 3; $page++) {
-                $response = $this->makeRequest('/movie/upcoming?language=en-US&page=' . $page . '&region=' . $region);
+                $response = $this->makeRequest('/movie/upcoming?language=' . $language . '&page=' . $page . '&region=' . $region);
                 if (isset($response['results']) && !empty($response['results'])) {
                     $allResults = array_merge($allResults, $response['results']);
                 }
             }
             return ['results' => $allResults];
         });
-        
+
         // Get previously shown movie IDs
         $shownMovieIds = Cache::get($shownMoviesCacheKey, []);
-        
+
         // Filter out previously shown movies
-        $availableMovies = array_filter($allMovies['results'] ?? [], function($movie) use ($shownMovieIds) {
+        $availableMovies = array_filter($allMovies['results'] ?? [], function ($movie) use ($shownMovieIds) {
             return !in_array($movie['id'], $shownMovieIds);
         });
-        
+
         // If we're running out of unseen movies (less than 5), reset the shown list
         if (count($availableMovies) < 5) {
             $shownMovieIds = [];
             $availableMovies = $allMovies['results'] ?? [];
             Cache::put($shownMoviesCacheKey, [], $this->cacheDuration);
         }
-        
+
         // Take a random subset of the available movies (10-20 movies)
         $movieCount = min(count($availableMovies), rand(10, 20));
         if ($movieCount > 0) {
             shuffle($availableMovies);
             $selectedMovies = array_slice($availableMovies, 0, $movieCount);
-            
+
             // Track which movies were shown
             $newShownMovieIds = array_merge($shownMovieIds, array_column($selectedMovies, 'id'));
             Cache::put($shownMoviesCacheKey, $newShownMovieIds, $this->cacheDuration);
-            
+            // remove duplicates from the array
+            $selectedMovies = array_unique($selectedMovies, SORT_REGULAR);
+            $selectedMovies = array_slice($selectedMovies, 0, 5);
             return ['results' => $selectedMovies];
         }
-        
+
         // Fallback: if something went wrong, return a subset of all movies
         shuffle($allMovies['results']);
         return ['results' => array_slice($allMovies['results'], 0, 10)];
+    }
+
+    public function getTrendingMovies(string $region, string $language): array
+    {
+        // Cache key for all trending movies
+        $allMoviesCacheKey = 'tmdb_all_trending_movies_' . $region;
+        // Cache key for tracking shown movies
+        $shownMoviesCacheKey = 'tmdb_shown_trending_movies_' . $region;
+
+        // Get all movies (either from cache or API)
+        $allMovies = Cache::remember($allMoviesCacheKey, $this->cacheDuration, function () use ($region, $language) {
+            // Fetch multiple pages to have a larger pool of movies
+            $allResults = [];
+            for ($page = 1; $page <= 3; $page++) {
+                $response = $this->makeRequest('/movie/popular?language=' . $language . '&page=' . $page . '&region=' . $region);
+                if (isset($response['results']) && !empty($response['results'])) {
+                    $allResults = array_merge($allResults, $response['results']);
+                }
+            }
+            return ['results' => $allResults];
+        });
+
+        // Get previously shown movie IDs
+        $shownMovieIds = Cache::get($shownMoviesCacheKey, []);
+
+        // Filter out previously shown movies
+        $availableMovies = array_filter($allMovies['results'] ?? [], function ($movie) use ($shownMovieIds) {
+            return !in_array($movie['id'], $shownMovieIds);
+        });
+
+        // If we're running out of unseen movies (less than 5), reset the shown list
+        if (count($availableMovies) < 5) {
+            $shownMovieIds = [];
+            $availableMovies = $allMovies['results'] ?? [];
+            Cache::put($shownMoviesCacheKey, [], $this->cacheDuration);
+        }
+
+        // Take a random subset of the available movies (10-20 movies)
+        $movieCount = min(count($availableMovies), rand(10, 20));
+        if ($movieCount > 0) {
+            shuffle($availableMovies);
+            $selectedMovies = array_slice($availableMovies, 0, $movieCount);
+
+            // Track which movies were shown
+            $newShownMovieIds = array_merge($shownMovieIds, array_column($selectedMovies, 'id'));
+            Cache::put($shownMoviesCacheKey, $newShownMovieIds, $this->cacheDuration);
+            // remove duplicates from the array
+            $selectedMovies = array_unique($selectedMovies, SORT_REGULAR);
+            $selectedMovies = array_slice($selectedMovies, 0, 5);
+            // get the movies providers
+            $selectedMovies = array_map(function ($movie) {
+                $movie['providers'] = $this->getMovieWatchProviders($movie['id']);
+                return $movie;
+            }, $selectedMovies);
+            return ['results' => $selectedMovies];
+        }
+
+        // Fallback: if something went wrong, return a subset of all movies
+        shuffle($allMovies['results']);
+        $allMovies['results'] = array_map(function ($movie) {
+            $movie['providers'] = $this->getMovieWatchProviders($movie['id']);
+            return $movie;
+        }, $allMovies['results']);
+        return ['results' => array_slice($allMovies['results'], 0, 5)];
+    }
+
+    public function getTrendingTvShows(string $region, string $language): array
+    {
+        // Cache key for all trending TV shows
+        $allTvShowsCacheKey = 'tmdb_all_trending_tv_shows_' . $region;
+        // Cache key for tracking shown TV shows
+        $shownTvShowsCacheKey = 'tmdb_shown_trending_tv_shows_' . $region;
+
+        // Get all TV shows (either from cache or API)
+        $allTvShows = Cache::remember($allTvShowsCacheKey, $this->cacheDuration, function () use ($region, $language) {
+            // Fetch multiple pages to have a larger pool of TV shows
+            $allResults = [];
+            for ($page = 1; $page <= 3; $page++) {
+                $response = $this->makeRequest('/tv/popular?language=' . $language . '&page=' . $page . '&region=' . $region);
+                if (isset($response['results']) && !empty($response['results'])) {
+                    $allResults = array_merge($allResults, $response['results']);
+                }
+            }
+            return ['results' => $allResults];
+        });
+
+        // Get previously shown TV show IDs 
+        $shownTvShowIds = Cache::get($shownTvShowsCacheKey, []);
+
+        // Filter out previously shown TV shows
+        $availableTvShows = array_filter($allTvShows['results'] ?? [], function ($tvShow) use ($shownTvShowIds) {
+            return !in_array($tvShow['id'], $shownTvShowIds);
+        });
+
+        // If we're running out of unseen TV shows (less than 5), reset the shown list
+        if (count($availableTvShows) < 5) {
+            $shownTvShowIds = [];
+            $availableTvShows = $allTvShows['results'] ?? [];
+            Cache::put($shownTvShowsCacheKey, [], $this->cacheDuration);
+        }
+
+        // Take a random subset of the available TV shows (10-20 shows)
+        $tvShowCount = min(count($availableTvShows), rand(10, 20));
+        if ($tvShowCount > 0) {
+            shuffle($availableTvShows);
+            $selectedTvShows = array_slice($availableTvShows, 0, $tvShowCount);
+
+            // Track which TV shows were shown
+            $newShownTvShowIds = array_merge($shownTvShowIds, array_column($selectedTvShows, 'id'));
+            Cache::put($shownTvShowsCacheKey, $newShownTvShowIds, $this->cacheDuration);
+            // remove duplicates from the array
+            $selectedTvShows = array_unique($selectedTvShows, SORT_REGULAR);
+            $selectedTvShows = array_slice($selectedTvShows, 0, 5);
+            return ['results' => $selectedTvShows];
+        }
+
+        // Fallback: if something went wrong, return a subset of all TV shows
+        shuffle($allTvShows['results']);
+        return ['results' => array_slice($allTvShows['results'], 0, 5)];
     }
 }

@@ -15,7 +15,8 @@ Route::middleware('throttle:60,1')->group(function () {
         Route::get('/discover/movie', [TmdbController::class, 'discoverMovies']);
         Route::get('/discover/tv', [TmdbController::class, 'discoverTvShows']);
         Route::get('/upcoming', [TmdbController::class, 'getUpcomingMovies']);
-
+        Route::get('/trending/movie', [TmdbController::class, 'getTrendingMovies']);
+        Route::get('/trending/tv', [TmdbController::class, 'getTrendingTvShows']);
         // Search
         Route::get('/search/multi', [TmdbController::class, 'searchMulti']);
 

@@ -140,6 +140,8 @@ export default function Home(props) {
     const [yearRange, setYearRange] = useState([1980, currentYear])
     const [minRating, setMinRating] = useState(6)
     const [selectedProviders, setSelectedProviders] = useState([])
+    const [trendingMovies, setTrendingMovies] = useState([])
+    const [trendingTvShows, setTrendingTvShows] = useState([])
 
     // Details Dialog State
     const [isDetailsOpen, setIsDetailsOpen] = useState(false)
@@ -166,6 +168,9 @@ export default function Home(props) {
         return saved ? JSON.parse(saved) : []
     })
 
+
+    // browser language
+    const [browserLanguage, setBrowserLanguage] = useState(navigator.language)
     // New state variables for better transitions
     const [direction, setDirection] = useState('right')
     const [isAnimating, setIsAnimating] = useState(false)
@@ -211,15 +216,33 @@ export default function Home(props) {
         }
         const fetchUpcomingMovies = async () => {
             try {
-                const response = await axios.get('/api/tmdb/upcoming', { params: { region: userRegion } })
+                const response = await axios.get('/api/tmdb/upcoming', { params: { region: userRegion, language: browserLanguage } })
                 setUpcomingMovies(response.data.results || [])
             } catch (err) {
                 console.error("Failed to fetch upcoming movies:", err)
             }
         }
+        const fetchTrendingMovies = async () => {
+            try {
+                const response = await axios.get('/api/tmdb/trending/movie/', { params: { region: userRegion, language: browserLanguage } })
+                setTrendingMovies(response.data.results || [])
+            } catch (err) {
+                console.error("Failed to fetch trending movies:", err)
+            }
+        }
 
+        const fetchTrendingTvShows = async () => {
+            try {
+                const response = await axios.get('/api/tmdb/trending/tv/', { params: { region: userRegion, language: browserLanguage } })
+                setTrendingTvShows(response.data.results || [])
+            } catch (err) {
+                console.error("Failed to fetch trending TV shows:", err)
+            }
+        }
         fetchRegionFromApi()
         fetchUpcomingMovies()
+        fetchTrendingMovies()
+        fetchTrendingTvShows()
     }, [])
 
     // Fetch Genres on mount
@@ -796,20 +819,17 @@ export default function Home(props) {
     return (
         <>
             <Head
-                title="PickForMeDaddy | Tired of Scrolling? Let Your Mood Pick the Movie"
+                title="PickForMeDaddy | Discover Movies Based on Your Mood"
                 description="No more endless scrolling on Netflix. PickForMeDaddy gives you a personalized pick based on your mood — instantly."
                 ogTitle="PickForMeDaddy | Your Mood. Your Movie."
                 ogDescription="Feeling indecisive? PickForMeDaddy recommends the perfect movie or show in seconds based on your vibe."
                 ogImage="/images/pickformedaddy-social-share.jpg"
             />
 
-
             <section className="min-h-screen w-full bg-gray-900 text-white">
                 <div className="container mx-auto px-2 sm:px-4 py-4 sm:py-8 max-w-full overflow-x-hidden">
-                    {/* Header Section - Improve mobile spacing */}
-
+                    {/* Header Section - Improved with logo */}
                     <header className="w-full flex flex-col items-center justify-between gap-3 mb-6">
-                        {/* Header Section */}
                         <section className="w-full flex flex-col items-center text-center gap-3 mb-6">
                             <h1 className="text-3xl sm:text-4xl font-bold">
                                 PickForMeDaddy<span className="text-purple-500">.</span>
@@ -870,7 +890,10 @@ export default function Home(props) {
                                 onClick={mode === 'random' ? skipToRandom : startQuiz}
                                 className="flex items-center px-8 py-3 bg-purple-600 hover:bg-purple-500 rounded-full text-white font-semibold transition"
                             >
-                                {mode === 'random' ? 'Surprise Me Daddy' : 'Pick Something for Me'}
+                                {/* display a spinner if isLoading is true */}
+                                {isLoading ? (
+                                    <ArrowPathIcon className="h-4 w-4 animate-spin mx-auto text-white" />
+                                ) : (mode === 'random' ? 'Surprise Me Daddy' : 'Pick Something for Me')}
                             </button>
                         </div>
 
@@ -889,9 +912,10 @@ export default function Home(props) {
                         )}
                     </header>
 
+
                     {/* "I'm Feeling Lucky" Result Card */}
                     {showQuizResultCard && quizRecommendation && !quizActive && (
-                        <div className="mt-12">
+                        <div className="mt-8">
                             <h3 className="text-xl font-semibold mb-6 text-center">We recommend:</h3>
 
                             {/* Replace separate featured item with central carousel */}
@@ -936,25 +960,6 @@ export default function Home(props) {
                         </div>
                     )}
 
-                    {!results.length > 0 && !quizRecommendation && (
-                        <section className="mt-12 max-w-3xl mx-auto px-4 text-left text-gray-300">
-                            <h2 className="text-2xl font-bold text-white mb-4">What is PickForMeDaddy?</h2>
-                            <p className="mb-4">
-                                PickForMeDaddy is your new fave streaming sidekick. Instead of scrolling forever through
-                                <strong className="text-white"> Netflix, Prime, Disney+</strong>, and more, we help you choose what to watch based on your <strong className="text-purple-400">mood</strong>.
-                            </p>
-                            <p className="mb-4">
-                                Whether you're feeling spicy, sad, weird, or just chaotic — our mood quiz or “Surprise Me Daddy” button gets you a curated pick in seconds.
-                            </p>
-                            <p className="mb-4">
-                                Plus, you can search across platforms, save your faves in a watchlist, and never argue with your roommate about what to watch again.
-                            </p>
-                            <p>
-                                Built with love by indecisive streamers. We're still improving things — if something feels off,
-                                <a href="mailto:contact@techno-saas.com" className="underline text-purple-400"> let us know</a>.
-                            </p>
-                        </section>
-                    )}
                     {/* Results Section */}
                     {isLoading ? (
                         <div className="text-center py-12">
@@ -967,6 +972,7 @@ export default function Home(props) {
                         </div>
                     ) : (results.length > 0 && !quizRecommendation) && searchActive ? (
                         <div className="w-full">
+                            <h2 className="text-xl font-bold text-white mb-4">Search Results</h2>
                             {/* Swipeable results for mobile / grid for larger screens */}
                             {results.length > 0 && (
                                 <>
@@ -1005,7 +1011,7 @@ export default function Home(props) {
                                 </>
                             )}
                         </div>
-                    ) : !quizRecommendation && !quizActive && (
+                    ) : !quizRecommendation && !quizActive && searchQuery && (
                         <div className="text-center py-12">
                             <QuestionMarkCircleIcon className="h-12 w-12 mx-auto text-gray-600" />
                             <p className="mt-4 text-gray-400">
@@ -1015,9 +1021,135 @@ export default function Home(props) {
                             </p>
                         </div>
                     )}
+                    {/* NEW: Featured Content Section - Added for AdSense compliance */}
+                    <section className="my-16 bg-gray-800/40 p-4 sm:p-6 rounded-xl border border-gray-700">
+                        <div className="flex flex-col md:flex-row items-start gap-6">
+                            <div className="w-full md:w-1/3">
+                                <h2 className="text-xl sm:text-2xl font-bold text-white mb-3">Popular Right Now</h2>
+                                <div className="aspect-video bg-gray-700 rounded-lg overflow-hidden relative mb-2">
+                                    {trendingMovies && trendingMovies[0] && (
+                                        <img
+                                            src={getImageUrl(trendingMovies[0].backdrop_path, 'w500') || "/placeholder.svg?height=280&width=500"}
+                                            alt={trendingMovies[0].title || trendingMovies[0].name}
+                                            className="w-full h-full object-cover"
+                                        />
+                                    )}
+                                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-gray-900 p-3">
+                                        <h3 className="font-bold text-white text-lg">
+                                            {trendingMovies && trendingMovies[0] ? (trendingMovies[0].title || trendingMovies[0].name) : "Loading trending content..."}
+                                        </h3>
+                                    </div>
+                                </div>
+                                <p className="text-gray-300 text-sm mb-3">
+                                    {trendingMovies && trendingMovies[0] ? trendingMovies[0].overview?.substring(0, 120) + "..." : "Discover what everyone's watching this week."}
+                                </p>
+                                <button
+                                    onClick={() => trendingMovies && trendingMovies[0] && handleShowDetails(trendingMovies[0])}
+                                    className="text-sm text-purple-400 hover:text-purple-300"
+                                >
+                                    View Details →
+                                </button>
+                            </div>
+
+                            <div className="w-full md:w-2/3">
+                                <h2 className="text-xl sm:text-2xl font-bold text-white mb-3">How It Works</h2>
+                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 h-full">
+                                    <div className="bg-gray-800 p-4 rounded-lg border border-gray-700 h-full">
+                                        <div className="flex items-center justify-center w-12 h-12 rounded-full bg-purple-900 text-white mb-3">1</div>
+                                        <h3 className="font-bold text-white mb-2">Choose Your Mode</h3>
+                                        <p className="text-gray-300 text-sm">Select mood-based for personalized picks or random for a surprise.</p>
+                                    </div>
+                                    <div className="bg-gray-800 p-4 rounded-lg border border-gray-700 h-full">
+                                        <div className="flex items-center justify-center w-12 h-12 rounded-full bg-purple-900 text-white mb-3">2</div>
+                                        <h3 className="font-bold text-white mb-2">Answer Questions</h3>
+                                        <p className="text-gray-300 text-sm">Tell us your mood, preferences, and what you're in the mood for.</p>
+                                    </div>
+                                    <div className="bg-gray-800 p-4 rounded-lg border border-gray-700 h-full">
+                                        <div className="flex items-center justify-center w-12 h-12 rounded-full bg-purple-900 text-white mb-3">3</div>
+                                        <h3 className="font-bold text-white mb-2">Get Recommendations</h3>
+                                        <p className="text-gray-300 text-sm">We'll show you matches from Netflix, Prime and more based on your input.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+                    {/* Main content area - Improved layout for AdSense */}
+                    {!results.length > 0 && !quizRecommendation && (
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
+                            {/* Left column - About the service */}
+                            <div className="md:col-span-2">
+                                <div className="bg-gray-800/30 rounded-xl border border-gray-700 p-4 sm:p-6">
+                                    <h2 className="text-2xl font-bold text-white mb-4">What is PickForMeDaddy?</h2>
+                                    <p className="mb-4 text-gray-300">
+                                        PickForMeDaddy is your new fave streaming sidekick. Instead of scrolling forever through
+                                        <strong className="text-white"> Netflix, Prime, Disney+</strong>, and more, we help you choose what to watch based on your <strong className="text-purple-400">mood</strong>.
+                                    </p>
+                                    <p className="mb-4 text-gray-300">
+                                        Whether you're feeling spicy, sad, weird, or just chaotic — our mood quiz or "Surprise Me Daddy" button gets you a curated pick in seconds.
+                                    </p>
+                                    <p className="mb-4 text-gray-300">
+                                        Plus, you can search across platforms, save your faves in a watchlist, and never argue with your roommate about what to watch again.
+                                    </p>
+
+                                    {/* NEW: Added FAQ section */}
+                                    <h3 className="text-xl font-bold text-white mt-8 mb-4">Frequently Asked Questions</h3>
+                                    <div className="space-y-4">
+                                        <div className="border-b border-gray-700 pb-3">
+                                            <h4 className="font-bold text-white mb-2">How does the recommendation system work?</h4>
+                                            <p className="text-gray-300">
+                                                Our picks are powered by vibes and chaos (with a little help from TheMovieDB API). You tell us your mood, we suggest a movie or show — no overthinking required.
+                                            </p>
+                                        </div>
+                                        <div className="border-b border-gray-700 pb-3">
+                                            <h4 className="font-bold text-white mb-2">Which streaming services are supported?</h4>
+                                            <p className="text-gray-300">
+                                                We don't partner directly with streaming platforms — but thanks to TheMovieDB, we can show you where your pick is available. So yes, you'll still know if it's on Netflix, Prime, Disney+, etc.
+                                            </p>
+                                        </div>
+                                        <div className="border-b border-gray-700 pb-3">
+                                            <h4 className="font-bold text-white mb-2">Is this service free to use?</h4>
+                                            <p className="text-gray-300">
+                                                Yup. 100% free. No paywall, no weird catch — just pure recommendation magic. We might run some light ads to keep the lights on, but that's it.
+                                            </p>
+                                        </div>
+                                    </div>
+
+
+                                    <p className="mt-6 text-gray-300">
+                                        Built with love by indecisive streamers. We're still improving things — if something feels off,
+                                        <a href="mailto:contact@techno-saas.com" className="underline text-purple-400"> let us know</a>.
+                                    </p>
+                                </div>
+                            </div>
+
+                            {/* Right column - Popular genres & Ad space */}
+                            <div className="space-y-6">
+                                {/* Popular Genres */}
+                                <div className="bg-gray-800/30 rounded-xl border border-gray-700 p-4">
+                                    <h3 className="text-xl font-bold text-white mb-3">Popular Genres</h3>
+                                    <div className="flex flex-wrap gap-2">
+                                        {['Action', 'Comedy', 'Drama', 'Horror', 'Sci-Fi', 'Romance', 'Animation', 'Thriller'].map(genre => (
+                                            <span key={genre} className="px-3 py-1 bg-gray-700 text-gray-300 rounded-full text-sm hover:bg-purple-900 hover:text-white transition-colors cursor-pointer">
+                                                {genre}
+                                            </span>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* Ad space placeholder */}
+                                <div className="bg-gray-800/30 rounded-xl border border-gray-700 p-4 text-center">
+                                    <div className="text-gray-500 mb-2 text-xs">ADVERTISEMENT</div>
+                                    <div className="h-64 bg-gray-800 rounded flex items-center justify-center">
+                                        {/* AdSense will place ads here */}
+                                        <div className="text-gray-600 text-sm">Ad Space</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
 
                     {/* Watchlist Section - Make it more mobile-friendly */}
-                    <section className="mt-8 sm:mt-12">
+                    <section className="my-8 sm:mt-12">
                         <Accordion type="single" collapsible defaultValue="watchlist" className="bg-gray-900 rounded-xl shadow-lg border border-gray-800 overflow-hidden">
                             <AccordionItem value="watchlist" className="border-b-0">
                                 <AccordionTrigger className="px-3 sm:px-6 py-3 sm:py-4 hover:no-underline hover:bg-gray-800/50 transition-colors">
@@ -1085,12 +1217,117 @@ export default function Home(props) {
                     </section>
 
                     {/* Upcoming Movies Section */}
-                    <section className="mt-8 sm:mt-12">
+                    <section className="my-8 sm:mt-12">
                         <h2 className="text-2xl font-bold text-white mb-4">Upcoming Movies</h2>
-                        <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2 sm:gap-4">
-                            {upcomingMovies.slice(0, 4).map(item => (
-                                <ResultItem key={item.id} item={item} onAddToWatchlist={addToWatchlist} onShowDetails={handleShowDetails} isAddedToWatchlist={watchlist.some(w => w.id === item.id && w.media_type === item.media_type)} />
-                            ))}
+
+                        <div className="w-full">
+                            {upcomingMovies.length > 0 && (
+                                <>
+                                    {/* Mobile swipeable view */}
+                                    <div className="block sm:hidden mb-4 overflow-x-auto pb-4">
+                                        <div className="flex w-max gap-3 px-2">
+                                            {upcomingMovies.map(item => (
+                                                <div key={`${item.id}-${item.media_type}`} className="w-[180px] flex-shrink-0 snap-start">
+                                                    <ResultItem
+                                                        item={item}
+                                                        onAddToWatchlist={addToWatchlist}
+                                                        onShowDetails={handleShowDetails}
+                                                        isAddedToWatchlist={watchlist.some(
+                                                            w => w.id === item.id && w.media_type === item.media_type
+                                                        )}
+                                                    />
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    {/* Desktop grid view */}
+                                    <div className="hidden sm:grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2 sm:gap-4">
+                                        {upcomingMovies.map(item => (
+                                            <ResultItem
+                                                key={`${item.id}-${item.media_type}`}
+                                                item={item}
+                                                onAddToWatchlist={addToWatchlist}
+                                                onShowDetails={handleShowDetails}
+                                                isAddedToWatchlist={watchlist.some(
+                                                    w => w.id === item.id && w.media_type === item.media_type
+                                                )}
+                                            />
+                                        ))}
+                                    </div>
+                                </>
+                            )}
+                        </div>
+                    </section>
+
+                    {/* NEW: Popular TV Shows - Added content for AdSense */}
+                    <section className="mt-8 sm:mt-12">
+                        <h2 className="text-2xl font-bold text-white mb-4">Popular TV Shows</h2>
+                        <div className="w-full">
+                            {trendingTvShows.length > 0 && (
+                                <>
+                                    {/* Mobile swipeable view */}
+                                    <div className="block sm:hidden mb-4 overflow-x-auto pb-4">
+                                        <div className="flex w-max gap-3 px-2">
+                                            {trendingTvShows.map(item => (
+                                                <div key={`${item.id}-${item.media_type}`} className="w-[180px] flex-shrink-0 snap-start">
+                                                    <ResultItem
+                                                        item={item}
+                                                        onAddToWatchlist={addToWatchlist}
+                                                        onShowDetails={handleShowDetails}
+                                                        isAddedToWatchlist={watchlist.some(
+                                                            w => w.id === item.id && w.media_type === item.media_type
+                                                        )}
+                                                    />
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    {/* Desktop grid view */}
+                                    <div className="hidden sm:grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2 sm:gap-4">
+                                        {trendingTvShows.map(item => (
+                                            <ResultItem
+                                                key={`${item.id}-${item.media_type}`}
+                                                item={item}
+                                                onAddToWatchlist={addToWatchlist}
+                                                onShowDetails={handleShowDetails}
+                                                isAddedToWatchlist={watchlist.some(
+                                                    w => w.id === item.id && w.media_type === item.media_type
+                                                )}
+                                            />
+                                        ))}
+                                    </div>
+                                </>
+                            )}
+                        </div>
+                    </section>
+
+                    {/* NEW: Movie guides section - more content for AdSense */}
+                    <section className="mt-8 sm:mt-12 bg-gray-800/30 rounded-xl border border-gray-700 p-4 sm:p-6">
+                        <h2 className="text-2xl font-bold text-white mb-6">Movie Guides & Articles</h2>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            <div className="bg-gray-800 rounded-lg overflow-hidden border border-gray-700">
+                                <div className="p-4">
+                                    <h3 className="font-bold text-white mb-2">Ultimate Guide to Netflix Hidden Categories</h3>
+                                    <p className="text-gray-300 text-sm mb-3">Discover secret Netflix codes to unlock thousands of hidden movies and shows.</p>
+                                    <a href="/article/netflix-hidden-categories" className="text-purple-400 text-sm hover:text-purple-300">Read More →</a>
+                                </div>
+                            </div>
+                            <div className="bg-gray-800 rounded-lg overflow-hidden border border-gray-700">
+                                <div className="p-4">
+                                    <h3 className="font-bold text-white mb-2">How to Host the Perfect Movie Night</h3>
+                                    <p className="text-gray-300 text-sm mb-3">Tips for creating an amazing movie night experience with friends and family.</p>
+                                    <a href="/article/perfect-movie-night" className="text-purple-400 text-sm hover:text-purple-300">Read More →</a>
+                                </div>
+                            </div>
+                            <div className="bg-gray-800 rounded-lg overflow-hidden border border-gray-700">
+                                <div className="p-4">
+                                    <h3 className="font-bold text-white mb-2">Top 10 Underrated Sci-Fi Movies</h3>
+                                    <p className="text-gray-300 text-sm mb-3">These hidden gems deserve more attention from science fiction fans.</p>
+                                    <a href="/article/underrated-sci-fi-movies" className="text-purple-400 text-sm hover:text-purple-300">Read More →</a>
+                                </div>
+                            </div>
                         </div>
                     </section>
 
@@ -1189,12 +1426,12 @@ export default function Home(props) {
                                                                     <div
                                                                         key={option.value}
                                                                         className={`
-                                                                            flex items-center space-x-2 rounded-lg border p-4 cursor-pointer transition-colors
-                                                                            ${quizAnswers[QUIZ_QUESTIONS[currentQuestionIndex].key] === option.value
+                                                                        flex items-center space-x-2 rounded-lg border p-4 cursor-pointer transition-colors
+                                                                        ${quizAnswers[QUIZ_QUESTIONS[currentQuestionIndex].key] === option.value
                                                                                 ? 'bg-purple-900/20 border-purple-500'
                                                                                 : 'bg-gray-800 border-gray-700 hover:border-gray-600'
                                                                             }
-                                                                        `}
+                                                                    `}
                                                                     >
                                                                         <RadioGroupItem
                                                                             value={option.value}
@@ -1218,12 +1455,12 @@ export default function Home(props) {
                                                                 <div
                                                                     key={option.value}
                                                                     className={`
-                                                                        relative rounded-lg border p-4 cursor-pointer transition-colors
-                                                                        ${(quizAnswers[QUIZ_QUESTIONS[currentQuestionIndex].key] || []).includes(option.value)
+                                                                    relative rounded-lg border p-4 cursor-pointer transition-colors
+                                                                    ${(quizAnswers[QUIZ_QUESTIONS[currentQuestionIndex].key] || []).includes(option.value)
                                                                             ? 'bg-purple-900/20 border-purple-500'
                                                                             : 'bg-gray-800 border-gray-700 hover:border-gray-600'
                                                                         }
-                                                                    `}
+                                                                `}
                                                                     onClick={() => {
                                                                         const currentValues = quizAnswers[QUIZ_QUESTIONS[currentQuestionIndex].key] || [];
                                                                         const newValues = currentValues.includes(option.value)
@@ -1232,13 +1469,6 @@ export default function Home(props) {
                                                                         handleQuizAnswer(QUIZ_QUESTIONS[currentQuestionIndex].key, newValues);
                                                                     }}
                                                                 >
-                                                                    {/* {option.logo ? (
-                                                                        <img
-                                                                            src={getImageUrl(option.logo, 'w92')}
-                                                                            alt={option.label}
-                                                                            className="w-full h-auto rounded mb-2"
-                                                                        />
-                                                                    ) : null} */}
                                                                     <Label className="text-sm text-center block text-gray-300">
                                                                         {option.label}
                                                                     </Label>
@@ -1292,20 +1522,52 @@ export default function Home(props) {
                                 : false
                         }
                     />
-                </div>
-                <footer className="text-gray-500 text-sm py-6 mt-16 border-t border-gray-800">
-                    <div className="container mx-auto px-4 flex flex-col sm:flex-row justify-between items-center text-center sm:text-left gap-3">
-                        <p>&copy; {new Date().getFullYear()} PickForMeDaddy. Made with chaos 💜</p>
-                        <div className="flex gap-4">
-                            <a href="/" className="hover:text-white">PickForMeDaddy</a>
-                            <a href="/privacy" className="hover:text-white">Privacy Policy</a>
-                            <a href="/terms" className="hover:text-white">Terms of Use</a>
-                            <a href="/contact" className="hover:text-white">Contact</a>
-                        </div>
-                    </div>
-                </footer>
-            </section>
 
+                    {/* NEW: Newsletter signup - Added content for AdSense */}
+                    <section className="mt-12 bg-gradient-to-r from-purple-900 to-indigo-900 rounded-xl p-6 sm:p-8">
+                        <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+                            <div className="text-center md:text-left">
+                                <h2 className="text-2xl font-bold text-white mb-2">Get Weekly Movie Recommendations</h2>
+                                <p className="text-purple-200">Subscribe to our newsletter for personalized picks delivered to your inbox</p>
+                            </div>
+                            <div className="w-full md:w-auto flex flex-col sm:flex-row gap-3">
+                                <Input type="email" placeholder="Enter your email" className="bg-white/10 border-white/20 text-white placeholder:text-purple-200" />
+                                <Button className="bg-white text-purple-900 hover:bg-purple-100">Subscribe</Button>
+                            </div>
+                        </div>
+                    </section>
+
+                    {/* NEW: Enhanced footer with links and social media - More content */}
+                    <footer className="mt-16 border-t border-gray-800 pt-8 pb-12">
+                        <div className="container mx-auto px-4">
+                            <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+                                <div>
+                                    <h3 className="text-xl font-bold text-white mb-4">PickForMeDaddy</h3>
+                                    <p className="text-gray-400 text-sm mb-4">Your personal streaming guide that helps you find the perfect movie or TV show based on your mood.</p>
+                                    <div className="flex space-x-4">
+                                        <a href="#" className="text-gray-400 hover:text-purple-400">
+                                            <span className="sr-only">Twitter</span>
+                                            <svg className="h-6 w-6" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                                <path d="M8.29 20.251c7.547 0 11.675-6.253 11.675-11.675 0-.178 0-.355-.012-.53A8.348 8.348 0 0022 5.92a8.19 8.19 0 01-2.357.646 4.118 4.118 0 001.804-2.27 8.224 8.224 0 01-2.605.996 4.107 4.107 0 00-6.993 3.743 11.65 11.65 0 01-8.457-4.287 4.106 4.106 0 001.27 5.477A4.072 4.072 0 012.8 9.713v.052a4.105 4.105 0 003.292 4.022 4.095 4.095 0 01-1.853.07 4.108 4.108 0 003.834 2.85A8.233 8.233 0 012 18.407a11.616 11.616 0 006.29 1.84"></path>
+                                            </svg>
+                                        </a>
+                                    </div>
+                                </div>
+                                <div>
+                                    <h3 className="text-lg font-medium text-white mb-4">Legal</h3>
+                                    <ul className="space-y-2 text-gray-400">
+                                        <li><a href="/privacy" className="hover:text-purple-400">Privacy Policy</a></li>
+                                        <li><a href="/terms" className="hover:text-purple-400">Terms of Service</a></li>
+                                    </ul>
+                                </div>
+                            </div>
+                            <div className="mt-8 pt-8 border-t border-gray-800 text-center">
+                                <p className="text-gray-500">&copy; {new Date().getFullYear()} PickForMeDaddy. All rights reserved.</p>
+                            </div>
+                        </div>
+                    </footer>
+                </div>
+            </section>
         </>
     );
-} 
+}

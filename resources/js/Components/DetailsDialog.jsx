@@ -117,7 +117,7 @@ export function DetailsDialog({ isOpen, onClose, item, onAddToWatchlist, isAdded
                         axios.get(providersUrl),
                         axios.get(videosUrl)
                     ]);
-
+                    
                     setDetails(detailsRes.data);
                     // TMDB returns providers nested under country codes
                     setProviders(providersRes.data.results?.[userRegion]);
@@ -132,7 +132,7 @@ export function DetailsDialog({ isOpen, onClose, item, onAddToWatchlist, isAdded
             };
             fetchDetails();
         } else {
-            // Reset state if dialog is closed or item is invalid
+             // Reset state if dialog is closed or item is invalid
             setDetails(null);
             setProviders(null);
             setVideos(null);
@@ -356,11 +356,11 @@ export function DetailsDialog({ isOpen, onClose, item, onAddToWatchlist, isAdded
                                         {formatRuntime(runtime)}
                                     </div>
                                 )}
-                                {rating && (
+                    {rating && (
                                     <div className="flex items-center">
                                         <Star className="h-3.5 w-3.5 mr-1 fill-yellow-400 text-yellow-400" />
                                         {rating}
-                                    </div>
+                            </div>
                                 )}
                             </div>
                         </div>
@@ -394,15 +394,15 @@ export function DetailsDialog({ isOpen, onClose, item, onAddToWatchlist, isAdded
                                     {genres.length > 0 && (
                                         <div className="mb-6">
                                             <h3 className="text-lg font-semibold mb-2 text-white">Genres</h3>
-                                            <div className="flex flex-wrap gap-2">
+                                                <div className="flex flex-wrap gap-2">
                                                 {genres.map(genre => (
                                                     <Badge key={genre.id} variant="outline" className="border-gray-700 text-gray-300">
                                                         {genre.name}
                                                     </Badge>
-                                                ))}
+                                                    ))}
+                                                </div>
                                             </div>
-                                        </div>
-                                    )}
+                                        )}
 
                                     <div className="flex flex-col md:flex-row gap-4">
                                         {/* trailer button */}
@@ -454,9 +454,9 @@ export function DetailsDialog({ isOpen, onClose, item, onAddToWatchlist, isAdded
                                     {(flatProviders?.length > 0 || rentProviders?.length > 0 || buyProviders?.length > 0) ? (
                                         <div className="space-y-4">
                                             {flatProviders?.length > 0 && (
-                                                <div>
+                                            <div>
                                                     <h4 className="text-sm font-medium mb-2 text-gray-300">Stream</h4>
-                                                    <div className="flex flex-wrap gap-2">
+                                                <div className="flex flex-wrap gap-2">
                                                         {flatProviders.map(provider => {
                                                             return (
                                                                 <a href={Object.keys(providersLinks).find(key => provider.provider_name.includes(key) || key.includes(provider.provider_name))
@@ -495,14 +495,14 @@ export function DetailsDialog({ isOpen, onClose, item, onAddToWatchlist, isAdded
                                                                 </a>
                                                             )
                                                         })}
-                                                    </div>
                                                 </div>
-                                            )}
+                                            </div>
+                                        )}
 
                                             {buyProviders?.length > 0 && (
-                                                <div>
+                                            <div>
                                                     <h4 className="text-sm font-medium mb-2 text-gray-300">Buy</h4>
-                                                    <div className="flex flex-wrap gap-2">
+                                                <div className="flex flex-wrap gap-2">
                                                         {buyProviders.map(provider => {
                                                             return (
                                                                 <a href={Object.keys(providersLinks).find(key => provider.provider_name.includes(key) || key.includes(provider.provider_name))
@@ -525,8 +525,8 @@ export function DetailsDialog({ isOpen, onClose, item, onAddToWatchlist, isAdded
                                     ) : (
                                         <div className="text-center text-gray-400">
                                             No streaming options available in {regionName}
-                                        </div>
-                                    )}
+                                            </div>
+                                        )}
                                 </TabsContent>
 
                                 <TabsContent value="videos" className="mt-6">
@@ -542,18 +542,18 @@ export function DetailsDialog({ isOpen, onClose, item, onAddToWatchlist, isAdded
                                                     ></iframe>
                                                 </div>
                                             ))}
-                                        </div>
+                                    </div>
                                     ) : (
                                         <div className="text-center text-gray-400">
                                             No videos available
-                                        </div>
+                                </div>
                                     )}
                                 </TabsContent>
                             </Tabs>
                         )}
                     </div>
                     <DialogFooter className="p-4 bg-gray-900 border-t border-gray-800 flex flex-row md:flex-col gap-2 mt-4 justify-between">
-                        <Button
+                         <Button
                             variant={isAddedToWatchlist ? "default" : "outline"}
                             onClick={() => onAddToWatchlist(item)}
                             className={isAddedToWatchlist ? "bg-purple-900 hover:bg-purple-800 text-white" : "bg-gray-600 border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white"}
@@ -575,7 +575,7 @@ export function DetailsDialog({ isOpen, onClose, item, onAddToWatchlist, isAdded
                                 Close
                             </Button>
                         </DialogClose>
-                    </DialogFooter>
+                </DialogFooter>
                 </ScrollArea>
 
 
