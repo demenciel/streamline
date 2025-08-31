@@ -1524,7 +1524,7 @@ export default function Home(props) {
                     />
 
                     {/* NEW: Newsletter signup - Added content for AdSense */}
-                    <section className="mt-12 bg-gradient-to-r from-purple-900 to-indigo-900 rounded-xl p-6 sm:p-8">
+                    {/* <section className="mt-12 bg-gradient-to-r from-purple-900 to-indigo-900 rounded-xl p-6 sm:p-8">
                         <div className="flex flex-col md:flex-row items-center justify-between gap-6">
                             <div className="text-center md:text-left">
                                 <h2 className="text-2xl font-bold text-white mb-2">Get Weekly Movie Recommendations</h2>
@@ -1535,7 +1535,7 @@ export default function Home(props) {
                                 <Button className="bg-white text-purple-900 hover:bg-purple-100">Subscribe</Button>
                             </div>
                         </div>
-                    </section>
+                    </section> */}
 
                     {/* NEW: Enhanced footer with links and social media - More content */}
                     <footer className="mt-16 border-t border-gray-800 pt-8 pb-12">
