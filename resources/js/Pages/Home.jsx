@@ -5,35 +5,30 @@ import { debounce } from 'lodash'
 
 // Import shadcn components
 import { Button } from "@/Components/ui/button"
-import { Input } from "@/Components/ui/input"
 import { Label } from "@/Components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/Components/ui/radio-group"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/Components/ui/accordion"
 import { Badge } from "@/Components/ui/badge"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/Components/ui/dialog"
 import { ScrollArea, ScrollBar } from "@/Components/ui/scroll-area"
+import Modal from '@/Components/Modal';
+
 
 // Import custom components
 import { ResultItem } from "@/Components/ResultItem"
 import { DetailsDialog } from "@/Components/DetailsDialog"
-import { MediaCarousel } from '@/Components/MediaCarousel'
+import EmailSignup from "@/Components/EmailSignup"
 
 // Import Heroicons
 import {
     CheckIcon,
-    MagnifyingGlassIcon,
     CalendarIcon,
     XMarkIcon,
-    SparklesIcon,
     ArrowPathIcon,
     QuestionMarkCircleIcon,
-    ArrowRightIcon,
-    ArrowLeftIcon,
-    ArrowUpIcon,
-    ArrowDownIcon,
-    ArrowPathRoundedSquareIcon,
 } from "@heroicons/react/24/outline"
-import { WandSparklesIcon } from 'lucide-react'
+import Dropdown from '@/Components/Dropdown'
+import HeadSection from '@/Components/Head'
 
 // Utility function for TMDB image URLs
 const getImageUrl = (path, size = "w342") => {
@@ -134,6 +129,7 @@ export default function Home(props) {
     const [userRegion, setUserRegion] = useState('US')
     const [regionName, setRegionName] = useState('United States')
     const [mode, setMode] = useState('random')
+    const [isRegionModalOpen, setIsRegionModalOpen] = useState(false)
     // Filter State
     const currentYear = new Date().getFullYear()
     const [selectedGenre, setSelectedGenre] = useState('')
@@ -168,12 +164,69 @@ export default function Home(props) {
         return saved ? JSON.parse(saved) : []
     })
 
+    const commonRegions = [
+        { label: 'United States', value: 'US' },
+        { label: 'United Kingdom', value: 'GB' },
+        { label: 'Canada', value: 'CA' },
+        { label: 'Australia', value: 'AU' },
+        { label: 'France', value: 'FR' },
+        { label: 'Germany', value: 'DE' },
+        { label: 'Italy', value: 'IT' },
+        { label: 'Spain', value: 'ES' },
+        { label: 'Brazil', value: 'BR' },
+        { label: 'Mexico', value: 'MX' },
+        { label: 'Argentina', value: 'AR' },
+        { label: 'Chile', value: 'CL' },
+        { label: 'Colombia', value: 'CO' },
+        { label: 'Peru', value: 'PE' },
+        { label: 'Venezuela', value: 'VE' },
+        { label: 'Ecuador', value: 'EC' },
+        { label: 'Panama', value: 'PA' },
+        { label: 'Nicaragua', value: 'NI' },
+        { label: 'Honduras', value: 'HN' },
+        { label: 'El Salvador', value: 'SV' },
+        { label: 'Guatemala', value: 'GT' },
+        { label: 'Costa Rica', value: 'CR' },
+    ]
+
 
     // browser language
     const [browserLanguage, setBrowserLanguage] = useState(navigator.language)
     // New state variables for better transitions
     const [direction, setDirection] = useState('right')
     const [isAnimating, setIsAnimating] = useState(false)
+
+    const closeRegionModal = () => {
+        setIsRegionModalOpen(false)
+    }
+
+    const openRegionModal = () => {
+        setIsRegionModalOpen(true)
+    }
+
+    useEffect(() => {
+        // Seed header from localStorage on mount
+        try {
+            const stored = window.localStorage.getItem('p4md_region')
+            if (stored) {
+                axios.defaults.headers.common['X-P4MD-Region'] = stored
+            } else if (userRegion) {
+                axios.defaults.headers.common['X-P4MD-Region'] = String(userRegion).toUpperCase()
+            }
+        } catch { }
+
+        // React to region updates broadcasted by your modal
+        const handler = () => {
+            try {
+                const stored = window.localStorage.getItem('p4md_region')
+                if (stored) {
+                    axios.defaults.headers.common['X-P4MD-Region'] = stored
+                }
+            } catch { }
+        }
+        window.addEventListener('region:updated', handler)
+        return () => window.removeEventListener('region:updated', handler)
+    }, [userRegion])
 
     // Save watchlist to localStorage when it changes
     useEffect(() => {
@@ -183,14 +236,24 @@ export default function Home(props) {
     // Detect user's region on mount
     useEffect(() => {
         // Try to get region from browser's language settings
-        const browserRegion = navigator.language?.split('-')[1]
-        if (browserRegion && browserRegion.length === 2) {
-            setUserRegion(browserRegion)
+        const savedRegion = localStorage.getItem('p4md_region')
+        if (savedRegion) {
+            setUserRegion(savedRegion)
+        } else {
+            const browserRegion = navigator.language?.split('-')[1]
+            if (browserRegion && browserRegion.length === 2) {
+                setUserRegion(browserRegion)
+            }
+            setTimeout(() => {
+                openRegionModal()
+            }, 1000)
         }
-
         // Also fetch from API to get the server-determined region
         const fetchRegionFromApi = async () => {
             try {
+                if (savedRegion) {
+                    return
+                }
                 const response = await axios.get('/api/tmdb/localization')
                 const region = response.data.region
                 setUserRegion(region)
@@ -214,9 +277,10 @@ export default function Home(props) {
                 // Keep browser-detected region if API call fails
             }
         }
+
         const fetchUpcomingMovies = async () => {
             try {
-                const response = await axios.get('/api/tmdb/upcoming', { params: { region: userRegion, language: browserLanguage } })
+                const response = await axios.get('/api/tmdb/upcoming', { params: { region: savedRegion, language: browserLanguage } })
                 setUpcomingMovies(response.data.results || [])
             } catch (err) {
                 console.error("Failed to fetch upcoming movies:", err)
@@ -224,7 +288,7 @@ export default function Home(props) {
         }
         const fetchTrendingMovies = async () => {
             try {
-                const response = await axios.get('/api/tmdb/trending/movie/', { params: { region: userRegion, language: browserLanguage } })
+                const response = await axios.get('/api/tmdb/trending/movie/', { params: { region: savedRegion, language: browserLanguage } })
                 setTrendingMovies(response.data.results || [])
             } catch (err) {
                 console.error("Failed to fetch trending movies:", err)
@@ -233,7 +297,7 @@ export default function Home(props) {
 
         const fetchTrendingTvShows = async () => {
             try {
-                const response = await axios.get('/api/tmdb/trending/tv/', { params: { region: userRegion, language: browserLanguage } })
+                const response = await axios.get('/api/tmdb/trending/tv/', { params: { region: savedRegion, language: browserLanguage } })
                 setTrendingTvShows(response.data.results || [])
             } catch (err) {
                 console.error("Failed to fetch trending TV shows:", err)
@@ -819,99 +883,32 @@ export default function Home(props) {
     return (
         <>
             <Head
-                title="PickForMeDaddy | Discover Movies Based on Your Mood"
-                description="No more endless scrolling on Netflix. PickForMeDaddy gives you a personalized pick based on your mood — instantly."
-                ogTitle="PickForMeDaddy | Your Mood. Your Movie."
-                ogDescription="Feeling indecisive? PickForMeDaddy recommends the perfect movie or show in seconds based on your vibe."
+                title="PickForMeDaddy — Stop scrolling. Start watching."
+                description="AI-powered mood & chaos picks for Netflix, Prime, Disney+ and more. No more doomscrolling — just press play."
+                ogTitle="PickForMeDaddy — Chaos picks, cozy nights."
+                ogDescription="Let your vibe choose tonight’s movie or show. Mood quiz or ‘Surprise Me Daddy’ in one tap."
                 ogImage="/images/pickformedaddy-social-share.jpg"
             />
 
+            {/* Main app */}
             <section className="min-h-screen w-full bg-gray-900 text-white">
                 <div className="container mx-auto px-2 sm:px-4 py-4 sm:py-8 max-w-full overflow-x-hidden">
                     {/* Header Section - Improved with logo */}
                     <header className="w-full flex flex-col items-center justify-between gap-3 mb-6">
-                        <section className="w-full flex flex-col items-center text-center gap-3 mb-6">
-                            <h1 className="text-3xl sm:text-4xl font-bold">
-                                PickForMeDaddy<span className="text-purple-500">.</span>
-                            </h1>
-                            <p className="text-gray-400 text-sm sm:text-base max-w-lg">
-                                No more doom scrolling{' '}
-                                <span className="text-white font-semibold">Netflix</span> or{' '}
-                                <span className="text-white font-semibold">Prime</span>. Let your{' '}
-                                <span className="text-purple-400 font-medium">mood</span> choose what to
-                                watch.
-                            </p>
-                            <span className="text-gray-500 text-xs sm:text-sm">
-                                Currently browsing from {userRegion}
-                            </span>
-                        </section>
-
-                        {/* Make buttons stack better on mobile */}
-                        <section className="flex flex-col sm:flex-row items-center justify-center gap-4 mt-4 sm:mt-8 w-full">
-                            {/* segmented control */}
-                            <div className="flex bg-gray-800 rounded-lg p-1">
-                                <button
-                                    onClick={() => setMode('personal')}
-                                    className={`px-4 py-2 rounded-lg text-sm font-medium transition ${mode === 'personal'
-                                        ? 'bg-purple-600 text-white'
-                                        : 'text-gray-400 hover:text-white'
-                                        }`}
-                                >
-                                    <WandSparklesIcon className="inline-block h-5 w-5 mr-1" />
-                                    Mood-Based
-                                </button>
-                                <button
-                                    onClick={() => setMode('random')}
-                                    className={`px-4 py-2 rounded-lg text-sm font-medium transition ${mode === 'random'
-                                        ? 'bg-indigo-600 text-white'
-                                        : 'text-gray-400 hover:text-white'
-                                        }`}
-                                >
-                                    <ArrowPathRoundedSquareIcon className="inline-block h-5 w-5 mr-1" />
-                                    Random
-                                </button>
-                            </div>
-
-                            {/* search button */}
-                            <button
-                                disabled={isLoading}
-                                onClick={() => setSearchActive(x => !x)}
-                                className="flex items-center px-4 py-2 border border-purple-900 rounded-lg text-sm text-white bg-transparent hover:bg-purple-800 transition"
-                            >
-                                <MagnifyingGlassIcon className="h-5 w-5 mr-1" />
-                                Search
-                            </button>
-                        </section>
-
-                        {/* ---- Primary CTA ---- */}
-                        <div className="mt-6 flex justify-center">
-                            <button
-                                disabled={isLoading}
-                                onClick={mode === 'random' ? skipToRandom : startQuiz}
-                                className="flex items-center px-8 py-3 bg-purple-600 hover:bg-purple-500 rounded-full text-white font-semibold transition"
-                            >
-                                {/* display a spinner if isLoading is true */}
-                                {isLoading ? (
-                                    <ArrowPathIcon className="h-4 w-4 animate-spin mx-auto text-white" />
-                                ) : (mode === 'random' ? 'Surprise Me Daddy' : 'Pick Something for Me')}
-                            </button>
-                        </div>
-
-                        {/* Improve search input responsive layout */}
-                        {searchActive && (
-                            <div className="relative w-full mt-4">
-                                <Input
-                                    type="text"
-                                    placeholder="Search movies and TV shows..."
-                                    value={searchQuery}
-                                    onChange={handleInputChange}
-                                    className="w-full pl-10 bg-gray-900 border-gray-800 text-white placeholder:text-gray-400"
-                                />
-                                <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
-                            </div>
-                        )}
+                        <HeadSection
+                            setIsRegionModalOpen={setIsRegionModalOpen}
+                            userRegion={userRegion}
+                            setMode={setMode}
+                            setSearchActive={setSearchActive}
+                            isLoading={isLoading}
+                            searchActive={searchActive}
+                            searchQuery={searchQuery}
+                            handleInputChange={handleInputChange}
+                            skipToRandom={skipToRandom}
+                            startQuiz={startQuiz}
+                            mode={mode}
+                        />
                     </header>
-
 
                     {/* "I'm Feeling Lucky" Result Card */}
                     {showQuizResultCard && quizRecommendation && !quizActive && (
@@ -1021,6 +1018,17 @@ export default function Home(props) {
                             </p>
                         </div>
                     )}
+                    {/* Email capture — build your list */}
+                    <section className="mt-8">
+                        <div className="bg-gray-800/40 border border-gray-700 rounded-xl p-4 sm:p-6">
+                            <EmailSignup
+                                title="Get weekly mood-based picks in your inbox"
+                                subtitle="Short &amp; sweet—top 5 watch ideas for your vibe and region."
+                                ctaLabel="Send me the picks"
+                                successMessage="You're on the list! Check your inbox for a welcome email."
+                            />
+                        </div>
+                    </section>
                     {/* NEW: Featured Content Section - Added for AdSense compliance */}
                     <section className="my-16 bg-gray-800/40 p-4 sm:p-6 rounded-xl border border-gray-700">
                         <div className="flex flex-col md:flex-row items-start gap-6">
@@ -1067,7 +1075,7 @@ export default function Home(props) {
                                     <div className="bg-gray-800 p-4 rounded-lg border border-gray-700 h-full">
                                         <div className="flex items-center justify-center w-12 h-12 rounded-full bg-purple-900 text-white mb-3">3</div>
                                         <h3 className="font-bold text-white mb-2">Get Recommendations</h3>
-                                        <p className="text-gray-300 text-sm">We'll show you matches from Netflix, Prime and more based on your input.</p>
+                                        <p className="text-gray-300 text-sm">We’ll show watch-ready matches (by region) and email you a weekly top-5.</p>
                                     </div>
                                 </div>
                             </div>
@@ -1119,6 +1127,14 @@ export default function Home(props) {
                                         Built with love by indecisive streamers. We're still improving things — if something feels off,
                                         <a href="mailto:contact@techno-saas.com" className="underline text-purple-400"> let us know</a>.
                                     </p>
+                                    <div className="mt-6">
+                                        <EmailSignup
+                                            compact
+                                            title="Prefer email?"
+                                            subtitle="Get one curated list every Friday."
+                                            ctaLabel="Join the list"
+                                        />
+                                    </div>
                                 </div>
                             </div>
 
@@ -1484,18 +1500,18 @@ export default function Home(props) {
                                                 </div>
                                             </div>
                                         </div>
-                                        <DialogFooter className="flex flex-row md:flex-col gap-2 mt-4">
+                                        <DialogFooter className="flex flex-row md:flex-col md:items-center md:gap-2 mt-4">
                                             <Button
                                                 onClick={goToPreviousQuestion}
                                                 disabled={currentQuestionIndex === 0}
-                                                className="w-full bg-purple-900 hover:bg-purple-800 text-white disabled:bg-gray-700"
+                                                className="w-1/2 md:w-full bg-purple-900 hover:bg-purple-800 text-white disabled:bg-gray-700"
                                             >
                                                 Previous
                                             </Button>
                                             <Button
                                                 onClick={goToNextQuestion}
                                                 disabled={!quizAnswers[QUIZ_QUESTIONS[currentQuestionIndex].key]}
-                                                className="w-full bg-purple-900 hover:bg-purple-800 text-white disabled:bg-gray-700"
+                                                className="w-1/2 md:w-full bg-purple-900 hover:bg-purple-800 text-white disabled:bg-gray-700"
                                             >
                                                 {currentQuestionIndex === QUIZ_QUESTIONS.length - 1 ? "Find Matches" : "Next"}
                                             </Button>
@@ -1522,20 +1538,6 @@ export default function Home(props) {
                                 : false
                         }
                     />
-
-                    {/* NEW: Newsletter signup - Added content for AdSense */}
-                    {/* <section className="mt-12 bg-gradient-to-r from-purple-900 to-indigo-900 rounded-xl p-6 sm:p-8">
-                        <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-                            <div className="text-center md:text-left">
-                                <h2 className="text-2xl font-bold text-white mb-2">Get Weekly Movie Recommendations</h2>
-                                <p className="text-purple-200">Subscribe to our newsletter for personalized picks delivered to your inbox</p>
-                            </div>
-                            <div className="w-full md:w-auto flex flex-col sm:flex-row gap-3">
-                                <Input type="email" placeholder="Enter your email" className="bg-white/10 border-white/20 text-white placeholder:text-purple-200" />
-                                <Button className="bg-white text-purple-900 hover:bg-purple-100">Subscribe</Button>
-                            </div>
-                        </div>
-                    </section> */}
 
                     {/* NEW: Enhanced footer with links and social media - More content */}
                     <footer className="mt-16 border-t border-gray-800 pt-8 pb-12">
@@ -1568,6 +1570,119 @@ export default function Home(props) {
                     </footer>
                 </div>
             </section>
+            <Modal
+                show={isRegionModalOpen}
+                onClose={closeRegionModal}
+            >
+                <div className="p-6 space-y-4 bg-gray-900">
+                    <form
+                        onSubmit={(e) => {
+                            e.preventDefault();
+                            console.log('submit');
+                            const fd = new FormData(e.currentTarget);
+                            const region = (fd.get('region') || '').toString().trim().toUpperCase();
+                            console.log(region)
+                            if (region) {
+                                setUserRegion(region)
+                                window.localStorage.setItem('p4md_region', String(userRegion).toUpperCase());
+                                window.dispatchEvent(new Event('region:updated'));
+                                closeRegionModal()
+                            } else {
+                                window.localStorage.setItem('p4md_region', String(userRegion).toUpperCase());
+                                window.dispatchEvent(new Event('region:updated'));
+                                closeRegionModal()
+                                console.log(userRegion)
+                            }
+                        }}
+                        className="p-6 space-y-4"
+                    >
+                        <h2 className="text-lg font-semibold text-white">
+                            Confirm your location
+                        </h2>
+
+                        <p className="text-sm text-gray-300">
+                            We detected that you’re in <span className="font-medium text-white">{userRegion}</span>.
+                            If that’s not correct, update it below. We use this to show what’s available on streaming services in your area.
+                        </p>
+
+                        <label className="block text-sm text-gray-300">
+                            Region / Country code (e.g., <span className="font-mono">CA</span>, <span className="font-mono">US</span>)
+                        </label>
+                        <Dropdown
+                            contentClasses="bg-gray-900 b-2 border border-gray-700"
+                            width="full"
+                        >
+                            <Dropdown.Trigger>
+                                <span className="inline-flex rounded-md">
+                                    <button
+                                        type="button"
+                                        className="inline-flex items-center rounded-md border border-1 px-3 py-2 text-sm font-medium leading-4 text-gray-500 transition duration-150 ease-in-out hover:text-gray-700 focus:outline-none"
+                                    >
+                                        {userRegion}
+
+                                        <svg
+                                            className="-me-0.5 ms-2 h-4 w-4"
+                                            xmlns="http://www.w3.org/2000/svg"
+                                            viewBox="0 0 20 20"
+                                            fill="currentColor"
+                                        >
+                                            <path
+                                                fillRule="evenodd"
+                                                d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
+                                                clipRule="evenodd"
+                                            />
+                                        </svg>
+                                    </button>
+                                </span>
+                            </Dropdown.Trigger>
+
+                            <Dropdown.Content
+                                contentClasses="bg-gray-900 b-2 border border-gray-700 absolute z-10"
+                                align="left"
+                            >
+                                {commonRegions.map(region => (
+                                    <Dropdown.Link
+                                        key={region.value}
+                                        className="text-gray-300"
+                                        onClick={() => {
+                                            setUserRegion(region.value)
+                                        }}
+                                    >
+                                        {region.label}
+                                    </Dropdown.Link>
+                                ))}
+                            </Dropdown.Content>
+                        </Dropdown>
+
+                        <div className="flex items-center justify-end gap-2 pt-2">
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    try {
+                                        window.localStorage.setItem('p4md_region', String(userRegion).toUpperCase());
+                                        window.dispatchEvent(new Event('region:updated'));
+                                        closeRegionModal();
+                                    } catch { }
+                                }}
+                                className="px-4 py-2 text-sm rounded-md border border-gray-600 text-gray-200 hover:bg-gray-800"
+                            >
+                                Use detected
+                            </button>
+                            <button
+                                type="submit"
+                                id='region'
+                                className="px-4 py-2 text-sm rounded-md bg-purple-600 hover:bg-purple-500 text-white"
+                            >
+                                Save location
+                            </button>
+                        </div>
+
+                        <p className="text-xs text-gray-500">
+                            Tip: If you’re using a VPN, detection can be off. Setting it manually here overrides detection.
+                        </p>
+                    </form>
+                </div>
+            </Modal>
         </>
     );
 }

@@ -5,6 +5,7 @@ use App\Http\Controllers\ImageProxyController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
+use App\Http\Controllers\NewsletterController;
 use App\Http\Controllers\TMDBController;
 
 // Import the articles data
@@ -29,6 +30,9 @@ Route::get('/contact', function () {
 Route::get('/tmdb-image/{size}/{path}', [ImageProxyController::class, 'proxyTmdbImage'])
     ->where('path', '.*') // Allow any characters in the path
     ->name('tmdb.image');
+
+Route::post('/newsletter/subscribe', [NewsletterController::class, 'store'])->name('newsletter.subscribe');
+
 
 Route::get('/article/{id}', function ($id) {
     $articles = require base_path('app/Data/articles.php');

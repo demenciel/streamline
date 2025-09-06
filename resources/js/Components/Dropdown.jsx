@@ -13,7 +13,7 @@ const Dropdown = ({ children }) => {
 
     return (
         <DropDownContext.Provider value={{ open, setOpen, toggleOpen }}>
-            <div className="relative">{children}</div>
+            <div className="relative w-full">{children}</div>
         </DropDownContext.Provider>
     );
 };
@@ -38,7 +38,7 @@ const Trigger = ({ children }) => {
 const Content = ({
     align = 'right',
     width = '48',
-    contentClasses = 'py-1 bg-white',
+    contentClasses = 'py-1',
     children,
 }) => {
     const { open, setOpen } = useContext(DropDownContext);
@@ -74,7 +74,7 @@ const Content = ({
                 >
                     <div
                         className={
-                            `rounded-md ring-1 ring-black ring-opacity-5 ` +
+                            `rounded-md ring-1 ring-black ring-opacity-5 max-h-60 overflow-y-auto ` +
                             contentClasses
                         }
                     >
@@ -88,15 +88,15 @@ const Content = ({
 
 const DropdownLink = ({ className = '', children, ...props }) => {
     return (
-        <Link
+        <span
             {...props}
             className={
-                'block w-full px-4 py-2 text-start text-sm leading-5 text-gray-700 transition duration-150 ease-in-out hover:bg-gray-100 focus:bg-gray-100 focus:outline-none ' +
+                'block w-full px-4 py-2 text-start text-sm leading-5 text-gray-700 transition duration-150 ease-in-out hover:bg-gray-100 focus:bg-gray-100 focus:outline-none pointer' +
                 className
             }
         >
             {children}
-        </Link>
+        </span>
     );
 };
 

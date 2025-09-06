@@ -25,40 +25,85 @@ class TmdbService
 
         // Detect language and region from request if provided
         if ($request) {
+            info($request);
             $this->detectLocaleFromRequest($request);
+            info(['detect locale', $this->defaultRegion]);
         }
     }
 
     /**
      * Detect and set locale settings based on request information
      */
-    protected function detectLocaleFromRequest(Request $request): void
+    public function detectLocaleFromRequest(Request $request): string
     {
-        // Try to get the locale from the Accept-Language header
+        // 0) Explicit overrides from custom headers, query string, or cookie
+        $hdrRegion   = $request->header('X-P4MD-Region');
+        $hdrLanguage = $request->header('X-P4MD-Language');
+        $qryRegion   = $request->query('region');
+        $qryLanguage = $request->query('language');
+        $ckRegion    = $request->cookie('p4md_region');
+
+        // Normalize helpers
+        $normRegion = function ($v) {
+            return $v ? strtoupper(trim($v)) : null;
+        };
+        $normLang = function ($v, $fallbackRegion) {
+            if (!$v) return null;
+            $v = str_replace('_', '-', trim($v));
+            // Accept "en" or "en-CA"
+            if (strpos($v, '-') === false) {
+                return strtolower($v) . '-' . $fallbackRegion;
+            }
+            [$lang, $reg] = explode('-', $v, 2);
+            return strtolower($lang) . '-' . strtoupper($reg ?: $fallbackRegion);
+        };
+
+        // Region: header > query > cookie > default
+        $region = $normRegion($hdrRegion) ?: $normRegion($qryRegion) ?: $normRegion($ckRegion) ?: $this->defaultRegion;
+        // Language: header > query (or null; we'll fallback later)
+        $language = null;
+        if ($hdrLanguage || $qryLanguage) {
+            $language = $normLang($hdrLanguage ?: $qryLanguage, $region);
+        }
+
+        if ($region) {
+            $this->defaultRegion = $region;
+        }
+        if ($language) {
+            $this->defaultLanguage = $language;
+            return $region;
+        }
+
+        // 1) Accept-Language
         $acceptLanguage = $request->header('Accept-Language');
         if ($acceptLanguage) {
             $locale = locale_accept_from_http($acceptLanguage);
             if ($locale) {
-                $parts = explode('_', $locale);
-                $language = strtolower($parts[0]);
-                $region = isset($parts[1]) ? strtoupper($parts[1]) : $this->defaultRegion;
-
-                $this->defaultLanguage = $language . '-' . $region;
-                $this->defaultRegion = $region;
-                return;
+                $parts = preg_split('/[-_]/', $locale);
+                $lang = strtolower($parts[0] ?? 'en');
+                $reg  = strtoupper($parts[1] ?? $region);
+                $this->defaultLanguage = $lang . '-' . $reg;
+                $this->defaultRegion = $reg;
+                return $reg;
             }
         }
 
-        // Fallback: Try to use the application locale
-        $appLocale = App::getLocale();
+        // 2) App locale
+        $appLocale = \Illuminate\Support\Facades\App::getLocale();
         if ($appLocale && $appLocale !== 'en') {
-            // Simple language mapping, could be expanded
             $parts = explode('-', $appLocale);
-            $language = strtolower($parts[0]);
-            $region = isset($parts[1]) ? strtoupper($parts[1]) : $this->defaultRegion;
-
-            $this->defaultLanguage = $language . '-' . $region;
-            $this->defaultRegion = $region;
+            $lang = strtolower($parts[0]);
+            $reg  = strtoupper($parts[1] ?? $region);
+            $this->defaultLanguage = $lang . '-' . $reg;
+            $this->defaultRegion = $reg;
+        } else {
+            // Ensure region override still applied if we only knew region
+            if ($region) {
+                $this->defaultRegion = $region;
+                if (!$this->defaultLanguage) {
+                    $this->defaultLanguage = 'en-' . $region;
+                }
+            }
         }
     }
 
@@ -74,7 +119,7 @@ class TmdbService
 
         // Add default region for APIs that support it, if not already specified
         // TMDB uses 'region' parameter for regional preferences
-        if (str_contains($endpoint, '/discover/') && !isset($params['region'])) {
+        if (!isset($params['region'])) {
             $params['region'] = $this->defaultRegion;
         }
 
@@ -171,17 +216,17 @@ class TmdbService
         ]);
     }
 
-    public function getMovieWatchProviders(string $id): array
+    public function getMovieWatchProviders(string $id, string $region): array
     {
         return $this->makeRequest("/movie/{$id}/watch/providers", [
-            'watch_region' => $this->defaultRegion
+            'watch_region' => $region
         ]);
     }
 
-    public function getTvWatchProviders(string $id): array
+    public function getTvWatchProviders(string $id, string $region): array
     {
         return $this->makeRequest("/tv/{$id}/watch/providers", [
-            'watch_region' => $this->defaultRegion
+            'watch_region' => $region
         ]);
     }
 
@@ -314,8 +359,8 @@ class TmdbService
             $selectedMovies = array_unique($selectedMovies, SORT_REGULAR);
             $selectedMovies = array_slice($selectedMovies, 0, 5);
             // get the movies providers
-            $selectedMovies = array_map(function ($movie) {
-                $movie['providers'] = $this->getMovieWatchProviders($movie['id']);
+            $selectedMovies = array_map(function ($movie) use ($region) {
+                $movie['providers'] = $this->getMovieWatchProviders($movie['id'], $region);
                 return $movie;
             }, $selectedMovies);
             return ['results' => $selectedMovies];
@@ -323,8 +368,8 @@ class TmdbService
 
         // Fallback: if something went wrong, return a subset of all movies
         shuffle($allMovies['results']);
-        $allMovies['results'] = array_map(function ($movie) {
-            $movie['providers'] = $this->getMovieWatchProviders($movie['id']);
+        $allMovies['results'] = array_map(function ($movie) use ($region)  {
+            $movie['providers'] = $this->getMovieWatchProviders($movie['id'], $region);
             return $movie;
         }, $allMovies['results']);
         return ['results' => array_slice($allMovies['results'], 0, 5)];

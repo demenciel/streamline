@@ -16,16 +16,6 @@ class TmdbController extends Controller
     {
         // Pass request to service for locale detection
         $this->tmdbService = $tmdbService;
-
-        // Check for explicit locale override in request
-        if ($request->has('locale')) {
-            $locale = $request->input('locale');
-            $parts = explode('-', $locale);
-            $language = $parts[0];
-            $region = $parts[1] ?? null;
-
-            $this->tmdbService->setLocale($language, $region);
-        }
     }
 
     /**
@@ -61,7 +51,7 @@ class TmdbController extends Controller
                 'vote_average.gte' => 'sometimes|numeric|min:0|max:10',
                 'with_watch_providers' => 'sometimes|string',
                 'watch_region' => 'sometimes|string|size:2', // Expect ISO 3166-1 code
-                'region' => 'sometimes|string|size:2', // General region parameter
+                'region' => 'sometimes|string|max:3', // General region parameter
                 'page' => 'sometimes|integer|min:1',
             ]);
 
@@ -72,7 +62,7 @@ class TmdbController extends Controller
 
             // If no region is specified, use the service's default region
             if (!isset($validated['region'])) {
-                $validated['region'] = $this->tmdbService->getActiveRegion();
+                $validated['region'] = $this->tmdbService->detectLocaleFromRequest($request);
             }
 
             // If region is set but watch_region isn't, use region for watch_region
@@ -108,7 +98,7 @@ class TmdbController extends Controller
 
             // If no region is specified, use the service's default region
             if (!isset($validated['region'])) {
-                $validated['region'] = $this->tmdbService->getActiveRegion();
+                $validated['region'] = $this->tmdbService->detectLocaleFromRequest($request);
             }
 
             // If region is set but watch_region isn't, use region for watch_region
@@ -133,7 +123,9 @@ class TmdbController extends Controller
             ]);
 
             // Use validated region or default
-            $region = $validated['region'] ?? $this->tmdbService->getActiveRegion();
+            if (!isset($validated['region'])) {
+                $region = $this->tmdbService->detectLocaleFromRequest($request);
+            }
             $page = $validated['page'] ?? 1;
 
             $data = $this->tmdbService->searchMulti($validated['query'], $page);
@@ -178,8 +170,8 @@ class TmdbController extends Controller
             if (!preg_match('/^[0-9]+$/', $id)) {
                 throw new \Exception('Invalid movie ID');
             }
-            $region = $request->input('region', $this->tmdbService->getActiveRegion());
-            $data = $this->tmdbService->getMovieWatchProviders($id);
+            $region = $this->tmdbService->detectLocaleFromRequest($request);
+            $data = $this->tmdbService->getMovieWatchProviders($id, $region);
             return response()->json($data);
         } catch (\Exception $e) {
             return $this->handleApiException($e, __FUNCTION__);
@@ -193,8 +185,8 @@ class TmdbController extends Controller
             if (!preg_match('/^[0-9]+$/', $id)) {
                 throw new \Exception('Invalid TV show ID');
             }
-            $region = $request->input('region', $this->tmdbService->getActiveRegion());
-            $data = $this->tmdbService->getTvWatchProviders($id);
+            $region = $this->tmdbService->detectLocaleFromRequest($request);
+            $data = $this->tmdbService->getTvWatchProviders($id, $region);
             return response()->json($data);
         } catch (\Exception $e) {
             return $this->handleApiException($e, __FUNCTION__);
@@ -262,7 +254,11 @@ class TmdbController extends Controller
                 'region' => 'required|string|size:2',
                 'language' => 'sometimes|string',
             ]);
-            $region = $validated['region'];
+            if (!isset($validated['region'])) {
+                $region = $this->tmdbService->detectLocaleFromRequest($request);
+            } else {
+                $region = $validated['region'];
+            }
             $language = $validated['language'] ?? $this->tmdbService->getActiveLanguage();
             $data = $this->tmdbService->getUpcomingMovies($region, $language);
             return response()->json($data);
@@ -278,7 +274,7 @@ class TmdbController extends Controller
                 'region' => 'required|string|size:2',
                 'language' => 'sometimes|string',
             ]);
-            $region = $validated['region'];
+            $region = $this->tmdbService->detectLocaleFromRequest($request);
             $language = $validated['language'] ?? $this->tmdbService->getActiveLanguage();
             $data = $this->tmdbService->getTrendingMovies($region, $language);
             return response()->json($data);
@@ -294,7 +290,11 @@ class TmdbController extends Controller
                 'region' => 'required|string|size:2',
                 'language' => 'sometimes|string',
             ]);
-            $region = $validated['region'];
+            if (!isset($validated['region'])) {
+                $region = $this->tmdbService->detectLocaleFromRequest($request);
+            } else {
+                $region = $validated['region'];
+            }
             $language = $validated['language'] ?? $this->tmdbService->getActiveLanguage();
             $data = $this->tmdbService->getTrendingTvShows($region, $language);
             return response()->json($data);
