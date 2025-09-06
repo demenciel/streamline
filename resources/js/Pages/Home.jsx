@@ -221,6 +221,7 @@ export default function Home(props) {
                 const stored = window.localStorage.getItem('p4md_region')
                 if (stored) {
                     axios.defaults.headers.common['X-P4MD-Region'] = stored
+                    window.location.reload()
                 }
             } catch { }
         }
